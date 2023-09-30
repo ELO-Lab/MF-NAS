@@ -29,7 +29,9 @@ class REA(Algorithm):
 
         if self.warm_up:
             assert self.n_sample_warmup != 0
-            assert self.zc_metric is not None
+            assert self.metric_warmup is not None
+        if self.using_zc_metric:
+            self.metric = self.metric + f'_{self.iepoch}'
         self._reset()
 
         n_eval = 0
@@ -50,9 +52,9 @@ class REA(Algorithm):
                 network.genotype = genotype
                 init_pop.append(network)
         else:
-            init_pop = run_warm_up(self.n_sample_warmup, self.pop_size, self.problem, self.zc_metric)
+            init_pop = run_warm_up(self.n_sample_warmup, self.pop_size, self.problem, self.metric_warmup)
         for network in init_pop:
-            time = self.problem.evaluate(network, algorithm=self)
+            time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=self.metric)
             n_eval += 1
             total_time += time
             self.trend_time.append(total_time)
@@ -69,7 +71,7 @@ class REA(Algorithm):
             best_candidate = sorted(candidates, key=lambda i: i[0])[-1][1]
             new_network = mutate(best_candidate, self.prob_mutation, available_ops=self.problem.search_space.available_ops)
 
-            time = self.problem.evaluate(new_network, algorithm=self)
+            time = self.problem.evaluate(new_network, using_zc_metric=self.using_zc_metric, metric=self.metric)
             n_eval += 1
             total_time += time
             self.trend_time.append(total_time)
@@ -83,14 +85,14 @@ class REA(Algorithm):
                 best_network = deepcopy(new_network)
         return best_network, total_time
 
-def run_warm_up(n_sample, k, problem, zc_metric):
+def run_warm_up(n_sample, k, problem, metric):
     list_network, list_scores = [], []
     total_times = 0.0
     for _ in range(n_sample):
         genotype = problem.search_space.sample(genotype=True)
         network = Network()
         network.genotype = genotype
-        time = problem.evaluate(network, metric=zc_metric)
+        time = problem.evaluate(network, using_zc_metric=True, metric=metric)
         total_times += time
         list_network.append(network)
         list_scores.append(network.score)

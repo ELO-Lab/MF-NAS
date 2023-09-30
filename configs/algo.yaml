@@ -1,16 +1,20 @@
 FLS:
+    using_zc_metric: False
     metric: val_acc
     iepoch: 12
 
 BLS:
+    using_zc_metric: False
     metric: val_acc
     iepoch: 12
 
 RS:
+    using_zc_metric: False
     metric: val_acc
     iepoch: 12
 
 REA:
+    using_zc_metric: False
     metric: val_acc
     iepoch: 12
     pop_size: 10
@@ -18,6 +22,7 @@ REA:
     prob_mutation: 1.0
 
 REA+W:
+    using_zc_metric: False
     metric: val_acc
     iepoch: 12
     pop_size: 10
@@ -25,4 +30,4 @@ REA+W:
     prob_mutation: 1.0
     warm_up: True
     n_sample_warmup: 2000
-    zc_metric: synflow
+    metric_warmup: synflow

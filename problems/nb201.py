@@ -39,17 +39,15 @@ class NB_201(Problem):
         self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nb201/[{self.dataset}]_data.p', 'rb'))
 
     def evaluate(self, network, **kwargs):
-        metric = kwargs['metric']
-        if metric in list_supported_zc_metrics:
-            time = self.zc_evaluate(network, metric, **kwargs)
-
-        elif metric in list_supported_training_based_metrics:
-            time = self.train(network, metric, **kwargs)
+        using_zc_metric = bool(kwargs['using_zc_metric'])
+        if not using_zc_metric:
+            time = self.zc_evaluate(network, **kwargs)
         else:
-            raise ValueError(f'Not support this metric: {metric}.')
+            time = self.train(network, **kwargs)
         return time
 
-    def zc_evaluate(self, network, metric, **kwargs):
+    def zc_evaluate(self, network, **kwargs):
+        metric = kwargs['metric']
         genotype = network.genotype
         phenotype = self.search_space.decode(genotype)
         op_indices = str(convert_str_to_op_indices(phenotype))
@@ -65,7 +63,8 @@ class NB_201(Problem):
         network.score = score
         return time
 
-    def train(self, network, metric, **kwargs):
+    def train(self, network, **kwargs):
+        metric = kwargs['metric']
         genotype = network.genotype
         iepoch = int(kwargs['algorithm'].iepoch)
         dif_epoch = iepoch - network.info['cur_epoch']
