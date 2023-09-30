@@ -40,10 +40,13 @@ class NB_201(Problem):
 
     def evaluate(self, network, **kwargs):
         using_zc_metric = bool(kwargs['using_zc_metric'])
-        if not using_zc_metric:
-            time = self.zc_evaluate(network, **kwargs)
+        if using_zc_metric:
+            metric = kwargs['metric']
+            time = self.zc_evaluate(network, metric=metric)
         else:
-            time = self.train(network, **kwargs)
+            metric = '_'.join(kwargs['metric'].split('_')[:-1])
+            iepoch = int(kwargs['metric'].split('_')[-1])
+            time = self.train(network, metric=metric, ipeoch=iepoch)
         return time
 
     def zc_evaluate(self, network, **kwargs):
@@ -65,8 +68,8 @@ class NB_201(Problem):
 
     def train(self, network, **kwargs):
         metric = kwargs['metric']
+        iepoch = kwargs['iepoch']
         genotype = network.genotype
-        iepoch = int(kwargs['algorithm'].iepoch)
         dif_epoch = iepoch - network.info['cur_epoch']
 
         h = ''.join(map(str, genotype))

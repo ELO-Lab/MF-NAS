@@ -18,7 +18,7 @@ class RandomSearch(Algorithm):
 
     def _run(self, **kwargs):
         self._reset()
-        if self.using_zc_metric:
+        if not self.using_zc_metric:
             self.metric = self.metric + f'_{self.iepoch}'
         n_eval = 0
         total_time = 0

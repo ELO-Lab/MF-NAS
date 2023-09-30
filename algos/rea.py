@@ -30,7 +30,7 @@ class REA(Algorithm):
         if self.warm_up:
             assert self.n_sample_warmup != 0
             assert self.metric_warmup is not None
-        if self.using_zc_metric:
+        if not self.using_zc_metric:
             self.metric = self.metric + f'_{self.iepoch}'
         self._reset()
 
