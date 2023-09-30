@@ -1,0 +1,32 @@
+{
+  'nb201_cifar10':
+    {
+      'max_time': 20000,
+      'max_eval': 99999999,
+      'dataset': 'cifar10'
+    },
+  'nb201_cifar100':
+    {
+      'max_time': 40000,
+      'max_eval': np.inf,
+      'dataset': 'cifar100'
+    },
+  'nb201_ImageNet16-120':
+    {
+      'max_time': 120000,
+      'max_eval': np.inf,
+      'dataset': 'ImageNet16-120'
+    }
+  'nb101':
+    {
+      'max_time': 20000,
+      'max_eval': np.inf,
+      'dataset': 'cifar10'
+    }
+  'nbasr':
+    {
+      'max_time': np.inf,
+      'max_eval': 25,
+      'dataset': 'TIMIT'
+    }
+}

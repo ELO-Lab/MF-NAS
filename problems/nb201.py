@@ -1,0 +1,75 @@
+from problems import Problem
+from search_spaces import SS_201
+import json
+import pickle as p
+
+list_supported_zc_metrics = ['synflow']
+list_supported_training_based_metrics = ['train_acc', 'val_acc', 'train_loss', 'val_loss']
+
+OP_NAMES_NB201 = ['skip_connect', 'none', 'nor_conv_3x3', 'nor_conv_1x1', 'avg_pool_3x3']
+EDGE_LIST = ((1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4))
+
+def convert_str_to_op_indices(str_encoding):
+    """
+    Converts NB201 string representation to op_indices
+    """
+    nodes = str_encoding.split('+')
+
+    def get_op(x):
+        return x.split('~')[0]
+
+    node_ops = [list(map(get_op, n.strip()[1:-1].split('|'))) for n in nodes]
+
+    enc = []
+    for u, v in EDGE_LIST:
+        enc.append(OP_NAMES_NB201.index(node_ops[v - 2][u - 1]))
+
+    return tuple(enc)
+
+class NB_201(Problem):
+    def __init__(self, max_eval, max_time, dataset, **kwargs):
+        super().__init__(SS_201(), max_eval, max_time)
+        self.dataset = dataset
+        self.zc_database = json.load(open(f'../database/nb201/zc_nasbench201.json'))
+        self.benchmark_database = p.load(open(f'../database/nb201/[{self.dataset}]_data.p', 'rb'))
+
+    def evaluate(self, network, metric, **kwargs):
+        if metric in list_supported_zc_metrics:
+            time = self.train(network, metric, **kwargs)
+
+        elif metric in list_supported_training_based_metrics:
+            time = self.zc_evaluate(network, metric, **kwargs)
+        else:
+            raise ValueError(f'Not support this metric: {metric}.')
+        return time
+
+    def zc_evaluate(self, network, metric, **kwargs):
+        genotype = network.genotype
+        phenotype = self.search_space.decode(genotype)
+        op_indices = str(convert_str_to_op_indices(phenotype))
+
+        if metric in ['flops', 'params']:
+            h = ''.join(map(str, genotype))
+            if metric == 'flops':
+                score, time = self.benchmark_database['200'][h]['FLOPs'], self.zc_database[self.dataset][op_indices]['flops']['time']
+            else:
+                score, time = self.benchmark_database['200'][h]['params'], self.zc_database[self.dataset][op_indices]['params']['time']
+        else:
+            score, time = self.zc_database[self.dataset][op_indices][metric]['score'], self.zc_database[self.dataset][op_indices][metric]['time']
+        network.score = score
+        return time
+
+    def train(self, network, metric, **kwargs):
+        genotype = network.genotype
+        iepoch = kwargs['iepoch']
+        dif_epoch = iepoch - network.info['cur_epoch']
+
+        h = ''.join(map(str, genotype))
+        info = self.benchmark_database['200'][h]
+        score = info[metric]
+        if 'loss' in metric:
+            score *= -1
+        network.score = score
+        network.info['cur_epoch'] = iepoch
+        time = info['train_time'] * dif_epoch
+        return time
