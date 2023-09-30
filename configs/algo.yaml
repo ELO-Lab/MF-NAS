@@ -1,0 +1,3 @@
+FLS:
+    metric: val_acc
+    iepoch: 12

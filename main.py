@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     ''' ALGORITHM '''
     parser.add_argument('--optimizer', type=str, default='MF-NAS', help='the search strategy',
-                        choices=['RS', 'SH', 'ILS', 'BLS', 'REA', 'REA+W', 'MF-NAS'])
+                        choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'REA+W', 'MF-NAS'])
     parser.add_argument('--metric', type=str, default='val_acc', help='the performance metric')
     ''' ENVIRONMENT '''
     parser.add_argument('--n_run', type=int, default=31, help='number of experiment runs')

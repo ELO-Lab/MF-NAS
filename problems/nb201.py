@@ -2,6 +2,10 @@ from problems import Problem
 from search_spaces import SS_201
 import json
 import pickle as p
+import os
+
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__)).split('/')
+ROOT_DIR = '/'.join(ROOT_DIR[:-1])
 
 list_supported_zc_metrics = ['synflow']
 list_supported_training_based_metrics = ['train_acc', 'val_acc', 'train_loss', 'val_loss']
@@ -30,15 +34,16 @@ class NB_201(Problem):
     def __init__(self, max_eval, max_time, dataset, **kwargs):
         super().__init__(SS_201(), max_eval, max_time)
         self.dataset = dataset
-        self.zc_database = json.load(open(f'../database/nb201/zc_nasbench201.json'))
-        self.benchmark_database = p.load(open(f'../database/nb201/[{self.dataset}]_data.p', 'rb'))
+        self.zc_database = json.load(open(ROOT_DIR + f'/database/nb201/zc_database.json'))
+        self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nb201/[{self.dataset}]_data.p', 'rb'))
 
-    def evaluate(self, network, metric, **kwargs):
+    def evaluate(self, network, **kwargs):
+        metric = kwargs['algorithm'].metric
         if metric in list_supported_zc_metrics:
-            time = self.train(network, metric, **kwargs)
+            time = self.zc_evaluate(network, metric, **kwargs)
 
         elif metric in list_supported_training_based_metrics:
-            time = self.zc_evaluate(network, metric, **kwargs)
+            time = self.train(network, metric, **kwargs)
         else:
             raise ValueError(f'Not support this metric: {metric}.')
         return time
@@ -61,7 +66,7 @@ class NB_201(Problem):
 
     def train(self, network, metric, **kwargs):
         genotype = network.genotype
-        iepoch = kwargs['iepoch']
+        iepoch = int(kwargs['algorithm'].iepoch)
         dif_epoch = iepoch - network.info['cur_epoch']
 
         h = ''.join(map(str, genotype))

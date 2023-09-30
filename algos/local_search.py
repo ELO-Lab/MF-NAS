@@ -38,7 +38,7 @@ class FirstImprovementLS(Algorithm):
 
         init_network = Network()
         init_network.genotype = self.problem.search_space.sample(genotype=True)
-        time = self.problem.evaluate(init_network, self.metric)
+        time = self.problem.evaluate(init_network, algorithm=self)
 
         n_eval += 1
         total_time += time
@@ -60,7 +60,7 @@ class FirstImprovementLS(Algorithm):
 
                 list_neighbors = get_all_neighbors(cur_network=cur_network, ids=ids, problem=self.problem)
                 for neighbor_network in list_neighbors:
-                    time = self.problem.evaluate(neighbor_network, self.metric)
+                    time = self.problem.evaluate(neighbor_network, algorithm=self)
                     network_history.append(neighbor_network.genotype)
                     score_history.append(neighbor_network.score)
 
@@ -94,7 +94,7 @@ class FirstImprovementLS(Algorithm):
                 list_neighbors = get_all_neighbors(cur_network=cur_network, ids=ids, problem=self.problem)
                 cur_network = list_neighbors[np.random.choice(len(list_neighbors))]
 
-                time = self.problem.evaluate(cur_network, self.metric)
+                time = self.problem.evaluate(cur_network, algorithm=self)
                 network_history.append(cur_network.genotype)
                 score_history.append(cur_network.score)
 

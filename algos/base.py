@@ -6,9 +6,12 @@ class Algorithm(ABC):
         self.problem = None
         self.metric = None
 
-    def adapt(self, problem, metric):
-        self.problem = problem,
-        self.metric = metric
+    def set(self, configs):
+        for key, value in configs.items():
+            setattr(self, key, value)
+
+    def adapt(self, problem):
+        self.problem = problem
 
     def run(self, seed, **kwargs):
         set_seed(seed)
