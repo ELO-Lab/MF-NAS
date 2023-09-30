@@ -1,7 +1,9 @@
 import argparse
 import logging
 import sys
+import numpy as np
 from factory import get_problem, get_algorithm
+
 
 def run(kwargs):
     search_space = kwargs.ss
@@ -10,37 +12,39 @@ def run(kwargs):
         search_space += f'_{dataset}'
     problem = get_problem(search_space)
 
-    opt_name, metric = kwargs.optimizer, kwargs.metric
+    opt_name = kwargs.optimizer
     opt = get_algorithm(opt_name)
-    opt.adapt(problem, metric)
+    opt.adapt(problem)
 
     n_run = kwargs.n_run
-    for run_id in range(1, n_run+1):
-        opt.run(seed=run_id)
 
+    trend_performance = []
+    for run_id in range(1, n_run + 1):
+        network, search_cost = opt.run(seed=run_id)
+        network_phenotype = problem.search_space.decode(network.genotype)
+        test_performance = problem.get_test_performance(network)
+        # print(network_phenotype, test_performance)
+        trend_performance.append(test_performance)
+    print('Mean:', np.round(np.mean(trend_performance), 2), '\t Std:', np.round(np.std(trend_performance), 2))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     ''' PROBLEM '''
     parser.add_argument('--ss', type=str, default='nb201', help='the search space',
-                        choices=['nb201', 'nb101', 'nbasr'])
+    choices = ['nb201', 'nb101', 'nbasr'])
     parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'cifar100', 'ImageNet16-120'],
-                        help='dataset for NAS-Bench-201')
-    parser.add_argument('--max_eval', type=int, default=3000, help='the maximum number of evaluations')
+    help = 'dataset for NAS-Bench-201')
 
     ''' ALGORITHM '''
     parser.add_argument('--optimizer', type=str, default='MF-NAS', help='the search strategy',
-                        choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'REA+W', 'MF-NAS'])
-    parser.add_argument('--metric', type=str, default='val_acc', help='the performance metric')
+    choices = ['RS', 'SH', 'FLS', 'BLS', 'REA', 'REA+W', 'MF-NAS'])
     ''' ENVIRONMENT '''
     parser.add_argument('--n_run', type=int, default=31, help='number of experiment runs')
-    parser.add_argument('--init_seed', type=int, default=0, help='random seed')
-    parser.add_argument('--debug', type=int, default=0, help='debug mode')
     args = parser.parse_args()
 
     log_format = '%(asctime)s %(message)s'
     logging.basicConfig(stream=sys.stdout, level=logging.INFO,
-                        format=log_format, datefmt='%m/%d %I:%M:%S %p')
+    format = log_format, datefmt = '%m/%d %I:%M:%S %p')
 
     run(args)

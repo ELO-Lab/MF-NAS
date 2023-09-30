@@ -8,3 +8,7 @@ class Problem(ABC):
     @abstractmethod
     def evaluate(self, network, metric, **kwargs):
         pass
+
+    @abstractmethod
+    def get_test_performance(self, network, **kwargs):
+        pass

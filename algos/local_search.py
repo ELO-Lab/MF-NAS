@@ -14,7 +14,7 @@ def get_all_neighbors(cur_network, ids, problem):
     for i in ids:
         # Get all neighbors at the index-i (i in list of indices ids)
         # In case of distance == 1, ids only has 1 index
-        _available_ops = problem.available_ops.copy()
+        _available_ops = problem.search_space.available_ops.copy()
         _available_ops.remove(genotype_cur_state[i])
         list_available_ops.append(_available_ops)
     list_ops = list(itertools.product(*list_available_ops))
@@ -31,8 +31,20 @@ def get_all_neighbors(cur_network, ids, problem):
 class FirstImprovementLS(Algorithm):
     def __init__(self):
         super().__init__()
+        self.trend_best_network = []
+        self.trend_time = []
+        self.network_history = []
+        self.score_history = []
+
+    def _reset(self):
+        self.trend_best_network = []
+        self.trend_time = []
+        self.network_history = []
+        self.score_history = []
 
     def _run(self, **kwargs):
+        self._reset()
+
         n_eval = 0
         total_time = 0
 
@@ -46,10 +58,10 @@ class FirstImprovementLS(Algorithm):
         cur_network = deepcopy(init_network)
         best_network = deepcopy(init_network)
 
-        trend_best_network = [best_network]
-        trend_time = [total_time]
+        self.trend_best_network = [best_network]
+        self.trend_time = [total_time]
 
-        network_history, score_history = [cur_network.phenotype], [cur_network.score]
+        self.network_history, self.score_history = [cur_network], [cur_network.score]
         while (n_eval <= self.problem.max_eval) and (total_time <= self.problem.max_time):
             improved = False
             list_ids = get_indices(cur_network.genotype, 1)
@@ -61,12 +73,12 @@ class FirstImprovementLS(Algorithm):
                 list_neighbors = get_all_neighbors(cur_network=cur_network, ids=ids, problem=self.problem)
                 for neighbor_network in list_neighbors:
                     time = self.problem.evaluate(neighbor_network, algorithm=self)
-                    network_history.append(neighbor_network.genotype)
-                    score_history.append(neighbor_network.score)
+                    self.network_history.append(neighbor_network)
+                    self.score_history.append(neighbor_network.score)
 
                     n_eval += 1
                     total_time += time
-                    trend_time.append(total_time)
+                    self.trend_time.append(total_time)
 
                     # Update the current solution
                     if neighbor_network.score >= cur_network.score:
@@ -75,12 +87,12 @@ class FirstImprovementLS(Algorithm):
                         # Update the best solution so far
                         if neighbor_network.score > best_network.score:
                             best_network = deepcopy(neighbor_network)
-                        trend_best_network.append(best_network.phenotype)
+                        self.trend_best_network.append(best_network)
 
                         improved = True
                         break
                     else:
-                        trend_best_network.append(best_network.phenotype)
+                        self.trend_best_network.append(best_network)
                 if improved:
                     break
 
@@ -95,15 +107,16 @@ class FirstImprovementLS(Algorithm):
                 cur_network = list_neighbors[np.random.choice(len(list_neighbors))]
 
                 time = self.problem.evaluate(cur_network, algorithm=self)
-                network_history.append(cur_network.genotype)
-                score_history.append(cur_network.score)
+                self.network_history.append(cur_network)
+                self.score_history.append(cur_network.score)
 
                 n_eval += 1
                 total_time += time
 
                 if cur_network.score > best_network.score:
                     best_network = deepcopy(cur_network)
-                trend_best_network.append(best_network.phenotype)
-                trend_time.append(total_time)
-
-        return trend_best_network, trend_time, network_history, score_history
+                self.trend_best_network.append(best_network)
+                self.trend_time.append(total_time)
+        best_network = self.trend_best_network[-1]
+        search_time = total_time
+        return best_network, search_time

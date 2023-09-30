@@ -1,6 +1,7 @@
 from problems import Problem
 from search_spaces import SS_201
 import json
+import numpy as np
 import pickle as p
 import os
 
@@ -71,10 +72,16 @@ class NB_201(Problem):
 
         h = ''.join(map(str, genotype))
         info = self.benchmark_database['200'][h]
-        score = info[metric]
+        score = info[metric][iepoch - 1]
         if 'loss' in metric:
             score *= -1
         network.score = score
         network.info['cur_epoch'] = iepoch
         time = info['train_time'] * dif_epoch
         return time
+
+    def get_test_performance(self, network, **kwargs):
+        genotype = network.genotype
+        h = ''.join(map(str, genotype))
+        test_acc = np.round(self.benchmark_database['200'][h]['test_acc'][-1] * 100, 4)
+        return test_acc

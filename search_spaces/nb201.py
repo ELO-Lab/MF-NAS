@@ -9,7 +9,7 @@ def get_op(x):
 class SS_201(SearchSpace):
     def __init__(self):
         super().__init__()
-        self.available_ops = list(range(6))  # encoded_ops
+        self.available_ops = list(range(len(list_ops)))  # encoded_ops
 
     def _sample(self):
         sampled_ops = np.random.choice(list_ops, 6)

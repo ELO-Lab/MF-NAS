@@ -9,7 +9,7 @@ def get_problem(name):
         all_configs = yaml.safe_load(file)
     configs = all_configs[name]
     max_eval, max_time, dataset = configs['max_eval'], configs['max_time'], configs['dataset']
-    print(max_eval, max_time, dataset)
+
     if '201' in name:
         return NB_201(max_eval, max_time, dataset)
     elif name == 'nb101':
@@ -20,11 +20,12 @@ def get_problem(name):
         raise ValueError(f'Not support this problem: {name}.')
 
 def get_algorithm(name):
-    with open('configs/problem.yaml', 'r') as file:
+    with open('configs/algo.yaml', 'r') as file:
         all_configs = yaml.safe_load(file)
     configs = all_configs[name]
     if name == 'FLS':
         algo = FirstImprovementLS()
         algo.set(configs)
+        return algo
     else:
         raise ValueError(f'Not support this algorithm: {name}')
