@@ -1,3 +1,11 @@
 FLS:
     metric: val_acc
     iepoch: 12
+
+BLS:
+    metric: val_acc
+    iepoch: 12
+
+RS:
+    metric: val_acc
+    iepoch: 12

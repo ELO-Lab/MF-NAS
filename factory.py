@@ -1,7 +1,9 @@
 import yaml
 from problems import NB_201
 from algos import (
-    FirstImprovementLS
+    FirstImprovementLS,
+    BestImprovementLS,
+    RandomSearch
 )
 
 def get_problem(name):
@@ -25,7 +27,11 @@ def get_algorithm(name):
     configs = all_configs[name]
     if name == 'FLS':
         algo = FirstImprovementLS()
-        algo.set(configs)
-        return algo
+    elif name == 'BLS':
+        algo = BestImprovementLS()
+    elif name == 'RS':
+        algo = RandomSearch()
     else:
         raise ValueError(f'Not support this algorithm: {name}')
+    algo.set(configs)
+    return algo
