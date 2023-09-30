@@ -45,13 +45,15 @@ class FirstImprovementLS(Algorithm):
     def _run(self, **kwargs):
         self._reset()
         if not self.using_zc_metric:
-            self.metric = self.metric + f'_{self.iepoch}'
+            metric = self.metric + f'_{self.iepoch}'
+        else:
+            metric = self.metric
         n_eval = 0
         total_time = 0
 
         init_network = Network()
         init_network.genotype = self.problem.search_space.sample(genotype=True)
-        time = self.problem.evaluate(init_network, using_zc_metric=self.using_zc_metric, metric=self.metric)
+        time = self.problem.evaluate(init_network, using_zc_metric=self.using_zc_metric, metric=metric)
 
         n_eval += 1
         total_time += time
@@ -73,7 +75,7 @@ class FirstImprovementLS(Algorithm):
 
                 list_neighbors = get_all_neighbors(cur_network=cur_network, ids=ids, problem=self.problem)
                 for neighbor_network in list_neighbors:
-                    time = self.problem.evaluate(neighbor_network, using_zc_metric=self.using_zc_metric, metric=self.metric)
+                    time = self.problem.evaluate(neighbor_network, using_zc_metric=self.using_zc_metric, metric=metric)
                     self.network_history.append(neighbor_network)
                     self.score_history.append(neighbor_network.score)
 
@@ -107,7 +109,7 @@ class FirstImprovementLS(Algorithm):
                 list_neighbors = get_all_neighbors(cur_network=cur_network, ids=ids, problem=self.problem)
                 cur_network = list_neighbors[np.random.choice(len(list_neighbors))]
 
-                time = self.problem.evaluate(cur_network, using_zc_metric=self.using_zc_metric, metric=self.metric)
+                time = self.problem.evaluate(cur_network, using_zc_metric=self.using_zc_metric, metric=metric)
                 self.network_history.append(cur_network)
                 self.score_history.append(cur_network.score)
 
@@ -140,13 +142,15 @@ class BestImprovementLS(Algorithm):
     def _run(self, **kwargs):
         self._reset()
         if not self.using_zc_metric:
-            self.metric = self.metric + f'_{self.iepoch}'
+            metric = self.metric + f'_{self.iepoch}'
+        else:
+            metric = self.metric
         n_eval = 0
         total_time = 0
 
         init_network = Network()
         init_network.genotype = self.problem.search_space.sample(genotype=True)
-        time = self.problem.evaluate(init_network, using_zc_metric=self.using_zc_metric, metric=self.metric)
+        time = self.problem.evaluate(init_network, using_zc_metric=self.using_zc_metric, metric=metric)
 
         n_eval += 1
         total_time += time
@@ -172,7 +176,7 @@ class BestImprovementLS(Algorithm):
                 all_neighbors += list_neighbors
 
             for neighbor_network in all_neighbors:
-                time = self.problem.evaluate(neighbor_network, using_zc_metric=self.using_zc_metric, metric=self.metric)
+                time = self.problem.evaluate(neighbor_network, using_zc_metric=self.using_zc_metric, metric=metric)
                 self.network_history.append(neighbor_network)
                 self.score_history.append(neighbor_network.score)
 

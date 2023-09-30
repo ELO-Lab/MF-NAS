@@ -31,7 +31,9 @@ class REA(Algorithm):
             assert self.n_sample_warmup != 0
             assert self.metric_warmup is not None
         if not self.using_zc_metric:
-            self.metric = self.metric + f'_{self.iepoch}'
+            metric = self.metric + f'_{self.iepoch}'
+        else:
+            metric = self.metric
         self._reset()
 
         n_eval = 0
@@ -54,7 +56,7 @@ class REA(Algorithm):
         else:
             init_pop = run_warm_up(self.n_sample_warmup, self.pop_size, self.problem, self.metric_warmup)
         for network in init_pop:
-            time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=self.metric)
+            time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
             n_eval += 1
             total_time += time
             self.trend_time.append(total_time)
@@ -71,7 +73,7 @@ class REA(Algorithm):
             best_candidate = sorted(candidates, key=lambda i: i[0])[-1][1]
             new_network = mutate(best_candidate, self.prob_mutation, available_ops=self.problem.search_space.available_ops)
 
-            time = self.problem.evaluate(new_network, using_zc_metric=self.using_zc_metric, metric=self.metric)
+            time = self.problem.evaluate(new_network, using_zc_metric=self.using_zc_metric, metric=metric)
             n_eval += 1
             total_time += time
             self.trend_time.append(total_time)

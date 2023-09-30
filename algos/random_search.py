@@ -19,13 +19,15 @@ class RandomSearch(Algorithm):
     def _run(self, **kwargs):
         self._reset()
         if not self.using_zc_metric:
-            self.metric = self.metric + f'_{self.iepoch}'
+            metric = self.metric + f'_{self.iepoch}'
+        else:
+            metric = self.metric
         n_eval = 0
         total_time = 0
 
         network = Network()
         network.genotype = self.problem.search_space.sample(genotype=True)
-        time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=self.metric)
+        time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
 
         n_eval += 1
         total_time += time
@@ -39,7 +41,7 @@ class RandomSearch(Algorithm):
         while (n_eval <= self.problem.max_eval) and (total_time <= self.problem.max_time):
             network = Network()
             network.genotype = self.problem.search_space.sample(genotype=True)
-            time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=self.metric)
+            time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
 
             if network.score > best_network.score:
                 best_network = deepcopy(network)

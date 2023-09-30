@@ -46,7 +46,7 @@ class NB_201(Problem):
         else:
             metric = '_'.join(kwargs['metric'].split('_')[:-1])
             iepoch = int(kwargs['metric'].split('_')[-1])
-            time = self.train(network, metric=metric, ipeoch=iepoch)
+            time = self.train(network, metric=metric, iepoch=iepoch)
         return time
 
     def zc_evaluate(self, network, **kwargs):
