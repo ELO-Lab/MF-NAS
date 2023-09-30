@@ -39,7 +39,7 @@ class NB_201(Problem):
         self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nb201/[{self.dataset}]_data.p', 'rb'))
 
     def evaluate(self, network, **kwargs):
-        metric = kwargs['algorithm'].metric
+        metric = kwargs['metric']
         if metric in list_supported_zc_metrics:
             time = self.zc_evaluate(network, metric, **kwargs)
 

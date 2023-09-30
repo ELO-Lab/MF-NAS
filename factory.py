@@ -3,7 +3,8 @@ from problems import NB_201
 from algos import (
     FirstImprovementLS,
     BestImprovementLS,
-    RandomSearch
+    RandomSearch,
+    REA
 )
 
 def get_problem(name):
@@ -31,6 +32,8 @@ def get_algorithm(name):
         algo = BestImprovementLS()
     elif name == 'RS':
         algo = RandomSearch()
+    elif 'REA' in name:
+        algo = REA()
     else:
         raise ValueError(f'Not support this algorithm: {name}')
     algo.set(configs)

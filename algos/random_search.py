@@ -5,14 +5,26 @@ from copy import deepcopy
 class RandomSearch(Algorithm):
     def __init__(self):
         super().__init__()
+        self.trend_best_network = []
+        self.trend_time = []
+        self.network_history = []
+        self.score_history = []
+
+    def _reset(self):
+        self.trend_best_network = []
+        self.trend_time = []
+        self.network_history = []
+        self.score_history = []
 
     def _run(self, **kwargs):
+        self._reset()
+
         n_eval = 0
         total_time = 0
 
         network = Network()
         network.genotype = self.problem.search_space.sample(genotype=True)
-        time = self.problem.evaluate(network, algorithm=self)
+        time = self.problem.evaluate(network, metric=self.metric)
 
         n_eval += 1
         total_time += time
@@ -26,7 +38,7 @@ class RandomSearch(Algorithm):
         while (n_eval <= self.problem.max_eval) and (total_time <= self.problem.max_time):
             network = Network()
             network.genotype = self.problem.search_space.sample(genotype=True)
-            time = self.problem.evaluate(network, algorithm=self)
+            time = self.problem.evaluate(network, metric=self.metric)
 
             if network.score > best_network.score:
                 best_network = deepcopy(network)

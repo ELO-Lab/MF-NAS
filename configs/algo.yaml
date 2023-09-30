@@ -9,3 +9,20 @@ BLS:
 RS:
     metric: val_acc
     iepoch: 12
+
+REA:
+    metric: val_acc
+    iepoch: 12
+    pop_size: 10
+    tournament_size: 10
+    prob_mutation: 1.0
+
+REA+W:
+    metric: val_acc
+    iepoch: 12
+    pop_size: 10
+    tournament_size: 10
+    prob_mutation: 1.0
+    warm_up: True
+    n_sample_warmup: 2000
+    zc_metric: synflow
