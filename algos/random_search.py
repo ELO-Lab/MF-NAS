@@ -23,7 +23,7 @@ class RandomSearch(Algorithm):
         else:
             metric = self.metric
         n_eval = 0
-        total_time = 0
+        total_time, total_epoch = 0.0, 0.0
 
         network = Network()
         network.genotype = self.problem.search_space.sample(genotype=True)
@@ -31,6 +31,7 @@ class RandomSearch(Algorithm):
 
         n_eval += 1
         total_time += time
+        total_epoch += self.iepoch
 
         best_network = deepcopy(network)
 
@@ -51,7 +52,8 @@ class RandomSearch(Algorithm):
 
             n_eval += 1
             total_time += time
+            total_epoch += self.iepoch
 
         best_network = self.trend_best_network[-1]
         search_time = total_time
-        return best_network, search_time
+        return best_network, search_time, total_epoch

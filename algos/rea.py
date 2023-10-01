@@ -23,9 +23,6 @@ class REA(Algorithm):
     def _run(self, **kwargs):
         assert self.pop_size is not None
         assert self.tournament_size is not None
-        self.pop_size = int(self.pop_size)
-        self.tournament_size = int(self.tournament_size)
-        self.prob_mutation = float(self.prob_mutation)
 
         if self.warm_up:
             assert self.n_sample_warmup != 0
@@ -37,7 +34,7 @@ class REA(Algorithm):
         self._reset()
 
         n_eval = 0
-        total_time = 0
+        total_time, total_epoch = 0.0, 0.0
 
         times, best_scores = [0.0], [-np.inf]
         best_network = None
@@ -54,11 +51,12 @@ class REA(Algorithm):
                 network.genotype = genotype
                 init_pop.append(network)
         else:
-            init_pop = run_warm_up(self.n_sample_warmup, self.pop_size, self.problem, self.metric_warmup)
+            init_pop, warmup_time = run_warm_up(self.n_sample_warmup, self.pop_size, self.problem, self.metric_warmup)
         for network in init_pop:
             time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
             n_eval += 1
             total_time += time
+            total_epoch += self.iepoch
             self.trend_time.append(total_time)
             population.append((network.score, network.genotype.copy()))
 
@@ -76,6 +74,7 @@ class REA(Algorithm):
             time = self.problem.evaluate(new_network, using_zc_metric=self.using_zc_metric, metric=metric)
             n_eval += 1
             total_time += time
+            total_epoch += self.iepoch
             self.trend_time.append(total_time)
 
             # In regularized evolution, we kill the oldest individual in the population.
@@ -85,7 +84,7 @@ class REA(Algorithm):
             if new_network.score > best_scores[-1]:
                 best_scores.append(new_network.score)
                 best_network = deepcopy(new_network)
-        return best_network, total_time
+        return best_network, total_time, total_epoch
 
 def run_warm_up(n_sample, k, problem, metric):
     list_network, list_scores = [], []
@@ -104,9 +103,9 @@ def run_warm_up(n_sample, k, problem, metric):
     list_network = list_network[ids]
     return list_network[:k], total_times
 
-def mutate(cur_network, mutation_rate=1.0, **kwargs):
+def mutate(cur_network_genotype, mutation_rate=1.0, **kwargs):
     available_ops = kwargs['available_ops']
-    new_genotype = cur_network.genotype.copy()
+    new_genotype = cur_network_genotype.copy()
 
     op_mutation_prob = mutation_rate / len(new_genotype)
     for ind in range(len(new_genotype)):

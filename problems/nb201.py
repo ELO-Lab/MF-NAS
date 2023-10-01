@@ -85,5 +85,5 @@ class NB_201(Problem):
     def get_test_performance(self, network, **kwargs):
         genotype = network.genotype
         h = ''.join(map(str, genotype))
-        test_acc = np.round(self.benchmark_database['200'][h]['test_acc'][-1] * 100, 4)
+        test_acc = np.round(self.benchmark_database['200'][h]['test_acc'][-1] * 100, 2)
         return test_acc

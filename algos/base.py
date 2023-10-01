@@ -15,8 +15,8 @@ class Algorithm(ABC):
 
     def run(self, seed, **kwargs):
         set_seed(seed)
-        network, search_cost = self._run(**kwargs)
-        return network, search_cost
+        network, search_cost, total_epoch = self._run(**kwargs)
+        return network, search_cost, total_epoch
 
     @abstractmethod
     def _run(self, **kwargs):

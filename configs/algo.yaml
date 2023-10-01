@@ -31,3 +31,9 @@ REA+W:
     warm_up: True
     n_sample_warmup: 2000
     metric_warmup: synflow
+
+SH:
+    using_zc_metric: False
+    metric: val_acc
+    list_iepoch: [12, 25, 50, 100, 100]
+    n_candidate: 32

@@ -1,11 +1,6 @@
 import yaml
 from problems import NB_201
-from algos import (
-    FirstImprovementLS,
-    BestImprovementLS,
-    RandomSearch,
-    REA
-)
+from algos import *
 
 def get_problem(name):
     with open('configs/problem.yaml', 'r') as file:
@@ -34,6 +29,8 @@ def get_algorithm(name):
         algo = RandomSearch()
     elif 'REA' in name:
         algo = REA()
+    elif name == 'SH':
+        algo = SuccessiveHalving()
     else:
         raise ValueError(f'Not support this algorithm: {name}')
     algo.set(configs)
