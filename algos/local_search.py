@@ -212,7 +212,7 @@ class BestImprovementLS(Algorithm):
                 list_neighbors = get_all_neighbors(cur_network=cur_network, ids=ids, problem=self.problem)
                 cur_network = list_neighbors[np.random.choice(len(list_neighbors))]
 
-                time = self.problem.evaluate(cur_network, using_zc_metric=self.using_zc_metric, metric=self.metric)
+                time = self.problem.evaluate(cur_network, using_zc_metric=self.using_zc_metric, metric=metric)
                 self.network_history.append(cur_network)
                 self.score_history.append(cur_network.score)
 

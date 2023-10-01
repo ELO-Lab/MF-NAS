@@ -4,4 +4,4 @@ class Network:
         self.phenotype = None
         self.genotype = None
         self.model = None
-        self.info = {'cur_epoch': 0}
+        self.info = {'cur_iepoch': 0}

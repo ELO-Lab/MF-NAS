@@ -34,8 +34,8 @@ def run(kwargs):
         trend_search_cost.append(search_cost)
         trend_total_epoch.append(total_epoch)
     print('Mean:', np.round(np.mean(trend_performance), 2), '\t Std:', np.round(np.std(trend_performance), 2))
-    print('Search cost (in seconds):', np.round(np.mean(trend_search_cost), 2))
-    print('Search cost (in epochs):', np.round(np.mean(trend_total_epoch), 2))
+    print('Search cost (in seconds):', np.round(np.mean(trend_search_cost)))
+    print('Search cost (in epochs):', np.round(np.mean(trend_total_epoch)))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
