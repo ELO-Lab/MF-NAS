@@ -17,10 +17,10 @@ class SuccessiveHalving(Algorithm):
             network = Network()
             network.genotype = self.problem.search_space.sample(genotype=True)
             list_network.append(network)
-        best_network, search_time, total_epoch = self.procedure(list_network)
+        best_network, search_time, total_epoch = self.search(list_network)
         return best_network, search_time, total_epoch
 
-    def procedure(self, list_network):
+    def search(self, list_network):
         assert len(list_network) != 0
         checkpoint = 0
         iepoch = self.list_iepoch[checkpoint]

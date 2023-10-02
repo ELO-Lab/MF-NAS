@@ -4,7 +4,10 @@ from utils import set_seed
 class Algorithm(ABC):
     def __init__(self):
         self.problem = None
+        self.max_eval, self.max_time = None, None
+        self.using_zc_metric = False
         self.metric = None
+        self.iepoch = -1  # for training-based search objectives
 
     def set(self, configs):
         for key, value in configs.items():

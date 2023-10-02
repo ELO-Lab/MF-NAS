@@ -21,6 +21,10 @@ class REA(Algorithm):
         self.trend_time = []
 
     def _run(self, **kwargs):
+        best_network, search_time, total_epoch = self.search(**kwargs)
+        return best_network, search_time, total_epoch
+
+    def search(self, **kwargs):
         assert self.pop_size is not None
         assert self.tournament_size is not None
 

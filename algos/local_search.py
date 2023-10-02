@@ -43,11 +43,15 @@ class FirstImprovementLS(Algorithm):
         self.score_history = []
 
     def _run(self, **kwargs):
+        best_network, search_time, total_epoch = self.search(**kwargs)
+        return best_network, search_time, total_epoch
+
+    def search(self, **kwargs):
         self._reset()
-        if not self.using_zc_metric:
-            metric = self.metric + f'_{self.iepoch}'
-        else:
-            metric = self.metric
+        max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
+        max_time = self.problem.max_time if self.max_time is None else self.max_time
+        metric = self.metric + f'_{self.iepoch}' if not self.using_zc_metric else self.metric
+
         n_eval = 0
         total_time, total_epoch = 0.0, 0.0
 
@@ -66,7 +70,7 @@ class FirstImprovementLS(Algorithm):
         self.trend_time = [total_time]
 
         self.network_history, self.score_history = [cur_network], [cur_network.score]
-        while (n_eval <= self.problem.max_eval) and (total_time <= self.problem.max_time):
+        while (n_eval <= max_eval) and (total_time <= max_time):
             improved = False
             list_ids = get_indices(cur_network.genotype, 1)
             while len(list_ids) != 0:
@@ -127,7 +131,6 @@ class FirstImprovementLS(Algorithm):
         search_time = total_time
         return best_network, search_time, total_epoch
 
-
 class BestImprovementLS(Algorithm):
     def __init__(self):
         super().__init__()
@@ -143,11 +146,15 @@ class BestImprovementLS(Algorithm):
         self.score_history = []
 
     def _run(self, **kwargs):
+        best_network, search_time, total_epoch = self.search(**kwargs)
+        return best_network, search_time, total_epoch
+
+    def search(self, **kwargs):
         self._reset()
-        if not self.using_zc_metric:
-            metric = self.metric + f'_{self.iepoch}'
-        else:
-            metric = self.metric
+        max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
+        max_time = self.problem.max_time if self.max_time is None else self.max_time
+        metric = self.metric + f'_{self.iepoch}' if not self.using_zc_metric else self.metric
+
         n_eval = 0
         total_time, total_epoch = 0.0, 0.0
 
@@ -166,7 +173,7 @@ class BestImprovementLS(Algorithm):
         self.trend_time = [total_time]
 
         self.network_history, self.score_history = [cur_network], [cur_network.score]
-        while (n_eval <= self.problem.max_eval) and (total_time <= self.problem.max_time):
+        while (n_eval <= max_eval) and (total_time <= max_time):
             improved = False
             list_ids = get_indices(cur_network.genotype, 1)
 

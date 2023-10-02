@@ -17,6 +17,10 @@ class RandomSearch(Algorithm):
         self.score_history = []
 
     def _run(self, **kwargs):
+        best_network, search_time, total_epoch = self.search(**kwargs)
+        return best_network, search_time, total_epoch
+
+    def search(self, **kwargs):
         self._reset()
         if not self.using_zc_metric:
             metric = self.metric + f'_{self.iepoch}'
