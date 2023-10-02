@@ -1,4 +1,3 @@
 numpy==1.22.0
 tqdm
 gdown
-nats-bench

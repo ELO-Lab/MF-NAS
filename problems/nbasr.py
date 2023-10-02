@@ -12,7 +12,7 @@ class NB_ASR(Problem):
     def __init__(self, max_eval, max_time, dataset, **kwargs):
         super().__init__(SS_ASR(), max_eval, max_time)
         self.dataset = dataset
-        self.zc_database = p.load(open(ROOT_DIR + f'/database/nb101/zc_database.p', 'rb'))
+        self.zc_database = p.load(open(ROOT_DIR + f'/database/nbasr/zc_database.p', 'rb'))
         self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nbasr/data.p', 'rb'))
 
     def evaluate(self, network, **kwargs):
