@@ -22,9 +22,10 @@ def get_all_neighbors(cur_network, ids, problem):
     for ops in list_ops:
         genotype_neighbor = np.array(genotype_cur_state).copy()
         genotype_neighbor[ids] = ops
-        neighbor = Network()
-        neighbor.genotype = genotype_neighbor.tolist()
-        list_neighbors.append(neighbor)
+        if problem.search_space.is_valid(genotype_neighbor):
+            neighbor = Network()
+            neighbor.genotype = genotype_neighbor.tolist()
+            list_neighbors.append(neighbor)
     np.random.shuffle(list_neighbors)
     return list_neighbors
 
@@ -83,29 +84,28 @@ class FirstImprovementLS(Algorithm):
 
                 list_neighbors = get_all_neighbors(cur_network=cur_network, ids=ids, problem=self.problem)
                 for neighbor_network in list_neighbors:
-                    if self.problem.search_space.is_valid(neighbor_network.genotype):
-                        time = self.problem.evaluate(neighbor_network, using_zc_metric=self.using_zc_metric, metric=metric)
-                        self.network_history.append(neighbor_network)
-                        self.score_history.append(neighbor_network.score)
+                    time = self.problem.evaluate(neighbor_network, using_zc_metric=self.using_zc_metric, metric=metric)
+                    self.network_history.append(neighbor_network)
+                    self.score_history.append(neighbor_network.score)
 
-                        n_eval += 1
-                        total_time += time
-                        total_epoch += self.iepoch
-                        self.trend_time.append(total_time)
+                    n_eval += 1
+                    total_time += time
+                    total_epoch += self.iepoch
+                    self.trend_time.append(total_time)
 
-                        # Update the current solution
-                        if neighbor_network.score >= cur_network.score:
-                            cur_network = deepcopy(neighbor_network)
+                    # Update the current solution
+                    if neighbor_network.score >= cur_network.score:
+                        cur_network = deepcopy(neighbor_network)
 
-                            # Update the best solution so far
-                            if neighbor_network.score > best_network.score:
-                                best_network = deepcopy(neighbor_network)
-                            self.trend_best_network.append(best_network)
+                        # Update the best solution so far
+                        if neighbor_network.score > best_network.score:
+                            best_network = deepcopy(neighbor_network)
+                        self.trend_best_network.append(best_network)
 
-                            improved = True
-                            break
-                        else:
-                            self.trend_best_network.append(best_network)
+                        improved = True
+                        break
+                    else:
+                        self.trend_best_network.append(best_network)
                 if improved:
                     break
 
@@ -122,23 +122,22 @@ class FirstImprovementLS(Algorithm):
                     list_neighbors = get_all_neighbors(cur_network=cur_network, ids=ids, problem=self.problem)
 
                     for network in list_neighbors:
-                        if self.problem.search_space.is_valid(network.genotype):
-                            cur_network = deepcopy(network)
+                        cur_network = deepcopy(network)
 
-                            time = self.problem.evaluate(cur_network, using_zc_metric=self.using_zc_metric, metric=metric)
-                            self.network_history.append(cur_network)
-                            self.score_history.append(cur_network.score)
+                        time = self.problem.evaluate(cur_network, using_zc_metric=self.using_zc_metric, metric=metric)
+                        self.network_history.append(cur_network)
+                        self.score_history.append(cur_network.score)
 
-                            n_eval += 1
-                            total_time += time
-                            total_epoch += self.iepoch
+                        n_eval += 1
+                        total_time += time
+                        total_epoch += self.iepoch
 
-                            if cur_network.score > best_network.score:
-                                best_network = deepcopy(cur_network)
-                            self.trend_best_network.append(best_network)
-                            self.trend_time.append(total_time)
-                            found_next_initial_network = True
-                            break
+                        if cur_network.score > best_network.score:
+                            best_network = deepcopy(cur_network)
+                        self.trend_best_network.append(best_network)
+                        self.trend_time.append(total_time)
+                        found_next_initial_network = True
+                        break
         best_network = self.trend_best_network[-1]
         search_time = total_time
         return best_network, search_time, total_epoch
@@ -202,28 +201,27 @@ class BestImprovementLS(Algorithm):
                 all_neighbors += list_neighbors
 
             for neighbor_network in all_neighbors:
-                if self.problem.search_space.is_valid(neighbor_network.genotype):
-                    time = self.problem.evaluate(neighbor_network, using_zc_metric=self.using_zc_metric, metric=metric)
-                    self.network_history.append(neighbor_network)
-                    self.score_history.append(neighbor_network.score)
+                time = self.problem.evaluate(neighbor_network, using_zc_metric=self.using_zc_metric, metric=metric)
+                self.network_history.append(neighbor_network)
+                self.score_history.append(neighbor_network.score)
 
-                    n_eval += 1
-                    total_time += time
-                    total_epoch += self.iepoch
-                    self.trend_time.append(total_time)
+                n_eval += 1
+                total_time += time
+                total_epoch += self.iepoch
+                self.trend_time.append(total_time)
 
-                    # Update the current solution
-                    if neighbor_network.score >= cur_network.score:
-                        cur_network = deepcopy(neighbor_network)
+                # Update the current solution
+                if neighbor_network.score >= cur_network.score:
+                    cur_network = deepcopy(neighbor_network)
 
-                        # Update the best solution so far
-                        if neighbor_network.score > best_network.score:
-                            best_network = deepcopy(neighbor_network)
-                        self.trend_best_network.append(best_network)
+                    # Update the best solution so far
+                    if neighbor_network.score > best_network.score:
+                        best_network = deepcopy(neighbor_network)
+                    self.trend_best_network.append(best_network)
 
-                        improved = True
-                    else:
-                        self.trend_best_network.append(best_network)
+                    improved = True
+                else:
+                    self.trend_best_network.append(best_network)
 
             # If the current solution cannot be improved, the algorithm is stuck
             # Therefore, we perform the escape operator.
@@ -238,24 +236,23 @@ class BestImprovementLS(Algorithm):
                     list_neighbors = get_all_neighbors(cur_network=cur_network, ids=ids, problem=self.problem)
 
                     for network in list_neighbors:
-                        if self.problem.search_space.is_valid(network.genotype):
-                            cur_network = deepcopy(network)
+                        cur_network = deepcopy(network)
 
-                            time = self.problem.evaluate(cur_network, using_zc_metric=self.using_zc_metric,
-                                                         metric=metric)
-                            self.network_history.append(cur_network)
-                            self.score_history.append(cur_network.score)
+                        time = self.problem.evaluate(cur_network, using_zc_metric=self.using_zc_metric,
+                                                     metric=metric)
+                        self.network_history.append(cur_network)
+                        self.score_history.append(cur_network.score)
 
-                            n_eval += 1
-                            total_time += time
-                            total_epoch += self.iepoch
+                        n_eval += 1
+                        total_time += time
+                        total_epoch += self.iepoch
 
-                            if cur_network.score > best_network.score:
-                                best_network = deepcopy(cur_network)
-                            self.trend_best_network.append(best_network)
-                            self.trend_time.append(total_time)
-                            found_next_initial_network = True
-                            break
+                        if cur_network.score > best_network.score:
+                            best_network = deepcopy(cur_network)
+                        self.trend_best_network.append(best_network)
+                        self.trend_time.append(total_time)
+                        found_next_initial_network = True
+                        break
         best_network = self.trend_best_network[-1]
         search_time = total_time
         return best_network, search_time, total_epoch

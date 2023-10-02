@@ -2,6 +2,7 @@ import argparse
 import logging
 import sys
 import numpy as np
+from tqdm import tqdm
 from factory import get_problem, get_algorithm
 
 
@@ -19,7 +20,7 @@ def run(kwargs):
     n_run = kwargs.n_run
     verbose = kwargs.verbose
     trend_performance, trend_search_cost, trend_total_epoch = [], [], []
-    for run_id in range(1, n_run + 1):
+    for run_id in tqdm(range(1, n_run + 1)):
         network, search_cost, total_epoch = opt.run(seed=run_id)
         test_performance = problem.get_test_performance(network)
         if verbose:

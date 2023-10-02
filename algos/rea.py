@@ -55,6 +55,7 @@ class REA(Algorithm):
                     genotype = self.problem.search_space.sample(genotype=True)
                     if self.problem.search_space.is_valid(genotype):
                         list_genotype.append(genotype)
+                        break
             for genotype in list_genotype:
                 network = Network()
                 network.genotype = genotype
@@ -99,8 +100,8 @@ def run_warm_up(n_sample, k, problem, metric):
     list_network, list_scores = [], []
     total_times = 0.0
     for _ in range(n_sample):
-        genotype = problem.search_space.sample(genotype=True)
         while True:
+            genotype = problem.search_space.sample(genotype=True)
             if problem.search_space.is_valid(genotype):
                 network = Network()
                 network.genotype = genotype

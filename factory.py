@@ -13,7 +13,7 @@ def get_problem(name):
     elif name == 'nb101':
         return NB_101(max_eval, max_time, dataset)
     elif name == 'nbasr':
-        pass
+        return NB_ASR(max_eval, max_time, dataset)
     else:
         raise ValueError(f'Not support this problem: {name}.')
 
