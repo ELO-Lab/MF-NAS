@@ -49,6 +49,7 @@ class MF_NAS(Algorithm):
         optimizer_stage2.adapt(self.problem)
         optimizer_stage2.using_zc_metric = self.using_zc_metric_stage2
         optimizer_stage2.metric = self.metric_stage2
+        optimizer_stage2.list_iepoch = self.list_iepoch
         best_network, search_time, total_epoch = optimizer_stage2.search(topK_found_solutions)
         return best_network, search_time, total_epoch
 

@@ -1,6 +1,6 @@
 import yaml
-from problems import NB_201
 from algos import *
+from problems import *
 
 def get_problem(name):
     with open('configs/problem.yaml', 'r') as file:
@@ -11,7 +11,7 @@ def get_problem(name):
     if '201' in name:
         return NB_201(max_eval, max_time, dataset)
     elif name == 'nb101':
-        pass
+        return NB_101(max_eval, max_time, dataset)
     elif name == 'nbasr':
         pass
     else:
@@ -31,6 +31,8 @@ def get_algorithm(name):
         algo = REA()
     elif name == 'SH':
         algo = SuccessiveHalving()
+    elif name == 'MF-NAS':
+        algo = MF_NAS()
     else:
         raise ValueError(f'Not support this algorithm: {name}')
     algo.set(configs)

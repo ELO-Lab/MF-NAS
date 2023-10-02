@@ -49,7 +49,12 @@ class REA(Algorithm):
 
         init_pop = []
         if not self.warm_up:
-            list_genotype = [self.problem.search_space.sample(genotype=True) for _ in range(self.pop_size)]
+            list_genotype = []
+            for _ in range(self.pop_size):
+                while True:
+                    genotype = self.problem.search_space.sample(genotype=True)
+                    if self.problem.search_space.is_valid(genotype):
+                        list_genotype.append(genotype)
             for genotype in list_genotype:
                 network = Network()
                 network.genotype = genotype
@@ -73,7 +78,7 @@ class REA(Algorithm):
         while (n_eval <= self.problem.max_eval) and (total_time <= self.problem.max_time):
             candidates = random_combination(population, self.tournament_size)
             best_candidate = sorted(candidates, key=lambda i: i[0])[-1][1]
-            new_network = mutate(best_candidate, self.prob_mutation, available_ops=self.problem.search_space.available_ops)
+            new_network = mutate(best_candidate, self.prob_mutation, problem=self.problem)
 
             time = self.problem.evaluate(new_network, using_zc_metric=self.using_zc_metric, metric=metric)
             n_eval += 1
@@ -95,12 +100,15 @@ def run_warm_up(n_sample, k, problem, metric):
     total_times = 0.0
     for _ in range(n_sample):
         genotype = problem.search_space.sample(genotype=True)
-        network = Network()
-        network.genotype = genotype
-        time = problem.evaluate(network, using_zc_metric=True, metric=metric)
-        total_times += time
-        list_network.append(network)
-        list_scores.append(network.score)
+        while True:
+            if problem.search_space.is_valid(genotype):
+                network = Network()
+                network.genotype = genotype
+                time = problem.evaluate(network, using_zc_metric=True, metric=metric)
+                total_times += time
+                list_network.append(network)
+                list_scores.append(network.score)
+                break
     list_network = np.array(list_network)
     list_scores = np.array(list_scores)
     ids = np.flip(np.argsort(list_scores))
@@ -108,16 +116,24 @@ def run_warm_up(n_sample, k, problem, metric):
     return list_network[:k], total_times
 
 def mutate(cur_network_genotype, mutation_rate=1.0, **kwargs):
-    available_ops = kwargs['available_ops']
-    new_genotype = cur_network_genotype.copy()
+    problem = kwargs['problem']
 
-    op_mutation_prob = mutation_rate / len(new_genotype)
-    for ind in range(len(new_genotype)):
-        if random.random() < op_mutation_prob:
-            available = [o for o in available_ops if o != new_genotype[ind]]
-            new_genotype[ind] = random.choice(available)
+    op_mutation_prob = mutation_rate / len(cur_network_genotype)
+    n_mutation, max_mutation = 0, 100
     new_network = Network()
-    new_network.genotype = new_genotype
+
+    while n_mutation <= max_mutation:
+        new_genotype = cur_network_genotype.copy()
+        for ind in range(len(new_genotype)):
+            if random.random() < op_mutation_prob:
+                available_ops = problem.search_space.return_available_ops(ind).copy()
+                available = [o for o in available_ops if o != new_genotype[ind]]
+                new_genotype[ind] = random.choice(available)
+        if problem.search_space.is_valid(new_genotype):
+            new_network.genotype = new_genotype
+            return new_network
+        n_mutation += 1
+    new_network.genotype = cur_network_genotype.copy()
     return new_network
 
 def random_combination(iterable, sample_size):

@@ -29,8 +29,11 @@ class RandomSearch(Algorithm):
         n_eval = 0
         total_time, total_epoch = 0.0, 0.0
 
-        network = Network()
-        network.genotype = self.problem.search_space.sample(genotype=True)
+        while True:
+            network = Network()
+            network.genotype = self.problem.search_space.sample(genotype=True)
+            if self.problem.search_space.is_valid(network.genotype):
+                break
         time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
 
         n_eval += 1
@@ -45,7 +48,10 @@ class RandomSearch(Algorithm):
         self.network_history, self.score_history = [deepcopy(network)], [best_network.score]
         while (n_eval <= self.problem.max_eval) and (total_time <= self.problem.max_time):
             network = Network()
-            network.genotype = self.problem.search_space.sample(genotype=True)
+            while True:
+                network.genotype = self.problem.search_space.sample(genotype=True)
+                if self.problem.search_space.is_valid(network.genotype):
+                    break
             time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
 
             if network.score > best_network.score:

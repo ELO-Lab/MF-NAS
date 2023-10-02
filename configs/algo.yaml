@@ -38,11 +38,24 @@ SH:
     list_iepoch: [12, 25, 50, 100, 200]
     n_candidate: 32
 
-MF_NAS:
-    optimizer_stage1: ILS  # choices: [ILS, BLS]
-    using_zc_metric_stage1: True
+MF-NAS:
+    # stage 1
+    ## metric
+    ### 201: [jacov, plain, grasp, fisher, epe_nas, grad_norm, snip, synflow, l2_norm, zen, nwot, params, flops]
+    ### 101: [synflow, params, flops]
+    ### asr: [synflow, params, flops]
     metric_stage1: synflow
+
+    ## optimizer_stage1: [FLS, BLS]
+    optimizer_stage1: FLS  # choices: [FLS, BLS]
+    using_zc_metric_stage1: True
+    max_eval_stage1: 2000
+
+    # stage 2
+    ## default (for 201, in our paper): list_iepoch: [12, 25, 50, 100, 200]; k = 32; metric = val_acc (choices: ['val_acc', 'train_acc', 'val_loss', 'train_loss'])
+    ## default (for 201, in our paper): list_iepoch: [4, 12, 36, 108]; k = 16; metric = val_acc
+    ## default (for asr, in our paper): list_iepoch: [10, 20, 30, 40]; k = 16; metric = val_per
     using_zc_metric_stage2: False
     metric_stage2: val_acc
-    k: 32
     list_iepoch: [12, 25, 50, 100, 200]
+    k: 32

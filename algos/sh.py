@@ -15,7 +15,11 @@ class SuccessiveHalving(Algorithm):
         list_network = []
         for _ in range(self.n_candidate):
             network = Network()
-            network.genotype = self.problem.search_space.sample(genotype=True)
+            while True:
+                genotype = self.problem.search_space.sample(genotype=True)
+                if self.problem.search_space.is_valid(genotype):
+                    network.genotype = genotype
+                    break
             list_network.append(network)
         best_network, search_time, total_epoch = self.search(list_network)
         return best_network, search_time, total_epoch
@@ -40,7 +44,7 @@ class SuccessiveHalving(Algorithm):
 
             for network in list_network:
                 time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=self.metric+f'_{iepoch}')
-                diff_epoch = network.info['cur_iepoch'] - last_iepoch
+                diff_epoch = network.info['cur_iepoch'][-1] - last_iepoch
                 total_time += time
                 total_epoch += diff_epoch
 

@@ -10,6 +10,13 @@ class SearchSpace(ABC):
             network = self.encode(network)
         return network
 
+    def is_valid(self, network):
+        return True
+
+    @abstractmethod
+    def return_available_ops(self, idx):
+        pass
+
     @abstractmethod
     def _sample(self):
         pass

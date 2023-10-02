@@ -9,7 +9,6 @@ def get_op(x):
 class SS_201(SearchSpace):
     def __init__(self):
         super().__init__()
-        self.available_ops = list(range(len(list_ops)))  # encoded_ops
 
     def _sample(self):
         sampled_ops = np.random.choice(list_ops, 6)
@@ -26,6 +25,9 @@ class SS_201(SearchSpace):
         ops = [list_ops[idx] for idx in encode_network]
         network = '|{}~0|+|{}~0|{}~1|+|{}~0|{}~1|{}~2|'.format(*ops)
         return network
+
+    def return_available_ops(self, idx):
+        return list(range(len(list_ops)))  # encoded_ops
 
 if __name__ == '__main__':
     # np.random.seed(0)

@@ -1,2 +1,3 @@
 from .base import SearchSpace
-from .nb201 import SS_201
+from .nb101.ss import SS_101
+from .nb201.ss import SS_201

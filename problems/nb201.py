@@ -70,7 +70,7 @@ class NB_201(Problem):
         metric = kwargs['metric']
         iepoch = kwargs['iepoch']
         genotype = network.genotype
-        dif_epoch = iepoch - network.info['cur_iepoch']
+        dif_epoch = iepoch - network.info['cur_iepoch'][-1]
 
         h = ''.join(map(str, genotype))
         info = self.benchmark_database['200'][h]
@@ -78,8 +78,9 @@ class NB_201(Problem):
         if 'loss' in metric:
             score *= -1
         network.score = score
-        network.info['cur_iepoch'] = iepoch
         time = info['train_time'] * dif_epoch
+        network.info['cur_iepoch'].append(iepoch)
+        network.info['train_time'].append(time)
         return time
 
     def get_test_performance(self, network, **kwargs):
