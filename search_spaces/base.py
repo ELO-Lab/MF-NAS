@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
 class SearchSpace(ABC):
-    def __init__(self):
-        pass
+    def __init__(self, name):
+        self.name = name
 
     def sample(self, genotype=False):
         network = self._sample()

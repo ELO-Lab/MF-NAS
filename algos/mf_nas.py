@@ -33,10 +33,18 @@ class MF_NAS(Algorithm):
         _, search_cost, _ = optimizer_stage1.search(**kwargs)
 
         network_history_stage1 = optimizer_stage1.network_history[:self.max_eval_stage1]
-        genotype_history_stage1 = np.array([network.genotype for network in network_history_stage1])
         score_history_stage1 = optimizer_stage1.score_history[:self.max_eval_stage1]
 
-        _, ids = np.unique(genotype_history_stage1, axis=0, return_index=True)
+        if self.problem.search_space.name == 'NB-101':
+            h_history_stage1 = []
+            for network in network_history_stage1:
+                h = self.problem.get_h(network.genotype)
+                h_history_stage1.append(h)
+            _, ids = np.unique(h_history_stage1, return_index=True)
+
+        else:
+            genotype_history_stage1 = np.array([network.genotype for network in network_history_stage1])
+            _, ids = np.unique(genotype_history_stage1, axis=0, return_index=True)
         network_history_stage1 = np.array(network_history_stage1)[ids]
         score_history_stage1 = np.array(score_history_stage1)[ids]
 
@@ -44,7 +52,6 @@ class MF_NAS(Algorithm):
         network_history_stage1 = network_history_stage1[ids]
 
         topK_found_solutions = network_history_stage1[:self.k]
-
         optimizer_stage2 = SuccessiveHalving()
         optimizer_stage2.adapt(self.problem)
         optimizer_stage2.using_zc_metric = self.using_zc_metric_stage2

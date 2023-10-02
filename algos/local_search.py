@@ -24,7 +24,7 @@ def get_all_neighbors(cur_network, ids, problem):
         genotype_neighbor[ids] = ops
         if problem.search_space.is_valid(genotype_neighbor):
             neighbor = Network()
-            neighbor.genotype = genotype_neighbor.tolist()
+            neighbor.genotype = genotype_neighbor.tolist().copy()
             list_neighbors.append(neighbor)
     np.random.shuffle(list_neighbors)
     return list_neighbors

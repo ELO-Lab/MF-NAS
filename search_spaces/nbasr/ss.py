@@ -10,7 +10,7 @@ max_length = 9
 
 class SS_ASR(SearchSpace):
     def __init__(self):
-        super().__init__()
+        super().__init__('NB-ASR')
 
     def _sample(self):
         network = np.zeros(max_length, dtype=np.int8)

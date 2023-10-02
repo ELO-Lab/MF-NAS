@@ -8,7 +8,7 @@ def get_op(x):
 
 class SS_201(SearchSpace):
     def __init__(self):
-        super().__init__()
+        super().__init__('NB-201')
 
     def _sample(self):
         sampled_ops = np.random.choice(list_ops, 6)

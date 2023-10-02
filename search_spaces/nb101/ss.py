@@ -11,7 +11,7 @@ op_spots = int(num_vertices - 2)  # Input/output vertices are fixed
 
 class SS_101(SearchSpace):
     def __init__(self):
-        super().__init__()
+        super().__init__('NB-101')
 
     def _sample(self):
         matrix = np.random.choice(allowed_edges, size=(num_vertices, num_vertices))
