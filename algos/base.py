@@ -11,7 +11,9 @@ class Algorithm(ABC):
 
     def set(self, configs):
         for key, value in configs.items():
+            print(f'+ {key}: {value}')
             setattr(self, key, value)
+        print()
 
     def adapt(self, problem):
         self.problem = problem

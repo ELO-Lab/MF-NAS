@@ -31,7 +31,7 @@ class NB_ASR(Problem):
         genotype = network.genotype
 
         h = self.get_h(network=genotype)
-        if metric in ['flops', 'params']:
+        if metric in ['FLOPs', 'params']:
             score = self.benchmark_database[h][metric]
         else:
             score = self.zc_database[h][metric]
