@@ -11,7 +11,7 @@ class Algorithm(ABC):
 
     def set(self, configs):
         for key, value in configs.items():
-            print(f'+ {key}: {value}')
+            print(f'   + {key}: {value}')
             setattr(self, key, value)
         print()
 

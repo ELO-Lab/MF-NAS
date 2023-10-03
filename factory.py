@@ -7,12 +7,12 @@ def get_problem(name):
         all_configs = yaml.safe_load(file)
     configs = all_configs[name]
     max_eval, max_time, dataset = configs['max_eval'], configs['max_time'], configs['dataset']
-    print(f'Problem: {name}')
-    print(f'Search space: {name.split("_")[0].upper()}')
-    print(f'Dataset: {dataset}')
-    print(f'Maximum #evals: {max_eval}')
-    print(f'Maximum time: {max_time}')
-
+    print(f'- Problem: {name}')
+    print(f'- Search space: {name.split("_")[0].upper()}')
+    print(f'- Dataset: {dataset.upper()}')
+    print(f'- Maximum budget (seconds): {max_time}')
+    print(f'- Maximum budget (evaluations): {max_eval}')
+    print()
     if '201' in name:
         return NB_201(max_eval, max_time, dataset)
     elif name == 'nb101':
@@ -40,6 +40,6 @@ def get_algorithm(name):
         algo = MF_NAS()
     else:
         raise ValueError(f'Not support this algorithm: {name}')
-    print(f'Algorithm: {name}')
+    print(f'- Algorithm: {name}')
     algo.set(configs)
     return algo
