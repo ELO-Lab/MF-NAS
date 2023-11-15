@@ -3,7 +3,11 @@ import logging
 import sys
 import numpy as np
 from tqdm import tqdm
+from datetime import datetime
 from factory import get_problem, get_algorithm
+import json
+import pickle as p
+import os
 
 
 def run(kwargs):
@@ -11,32 +15,51 @@ def run(kwargs):
     dataset = kwargs.dataset
     if '201' in search_space:
         search_space += f'_{dataset}'
-    problem = get_problem(search_space)
+    problem, info_problem = get_problem(search_space)
 
     opt_name = kwargs.optimizer
-    opt = get_algorithm(opt_name)
+    opt, info_algo = get_algorithm(opt_name)
     opt.adapt(problem)
 
     n_run = kwargs.n_run
     verbose = kwargs.verbose
     trend_performance, trend_search_cost, trend_total_epoch = [], [], []
+
+    dt_string = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
+    path_res = f'./exp/{opt_name}_{search_space}_' + dt_string
+    os.mkdir(path_res)
+
+    os.mkdir(path_res + '/configs')
+    json.dump(info_problem, open(path_res + '/configs/info_problem.json', 'w'), indent=4)
+    json.dump(info_algo, open(path_res + '/configs/info_algo.json', 'w'), indent=4)
+
+    os.mkdir(path_res + '/results')
     for run_id in tqdm(range(1, n_run + 1)):
         network, search_cost, total_epoch = opt.run(seed=run_id)
         test_performance = problem.get_test_performance(network)
         if verbose:
             network_phenotype = problem.search_space.decode(network.genotype)
-            print('RunID:', run_id)
-            print('Best architecture found:', network_phenotype)
-            print('Performance:', test_performance)
-            print('Search cost (in seconds):', search_cost)
-            print('Search cost (in epochs):', total_epoch)
+            print()
+            logging.info(f'RunID: {run_id}')
+            logging.info(f'Best architecture found:\n{network_phenotype}')
+            logging.info(f'Performance: {test_performance}')
+            logging.info(f'Search cost (in seconds): {search_cost}')
+            logging.info(f'Search cost (in epochs): {total_epoch}')
             print('-'*100)
         trend_performance.append(test_performance)
         trend_search_cost.append(search_cost)
         trend_total_epoch.append(total_epoch)
-    print('Mean:', np.round(np.mean(trend_performance), 2), '\t Std:', np.round(np.std(trend_performance), 2))
-    print('Search cost (in seconds):', np.round(np.mean(trend_search_cost)))
-    print('Search cost (in epochs):', np.round(np.mean(trend_total_epoch)))
+        info_results = {
+            'Genotype': network.genotype,
+            'Phenotype': problem.search_space.decode(network.genotype),
+            'Performance': test_performance,
+            'Search cost (in seconds)': search_cost,
+            'Search cost (in epochs)': total_epoch,
+        }
+        p.dump(info_results, open(path_res + f'/results/run_{run_id}_results.p', 'wb'))
+    logging.info(f'Mean: {np.round(np.mean(trend_performance), 2)} \t Std: {np.round(np.std(trend_performance), 2)}')
+    logging.info(f'Search cost (in seconds): {np.round(np.mean(trend_search_cost))}')
+    logging.info(f'Search cost (in epochs): {np.round(np.mean(trend_total_epoch))}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

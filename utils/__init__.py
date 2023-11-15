@@ -1,1 +1,1 @@
-from .utils import set_seed
+from .utils import set_seed, print_info
