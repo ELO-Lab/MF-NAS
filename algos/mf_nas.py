@@ -4,10 +4,17 @@ import numpy as np
 class MF_NAS(Algorithm):
     def __init__(self):
         super().__init__()
-        self.list_iepoch = None
-        self.using_zc_metric_stage1, self.using_zc_metric_stage2 = True, False
-        self.metric_stage1, self.metric_stage2 = None, None
+        # Stage 1: Training-free Search (Local Search at current)
+        self.using_zc_metric_stage1 = True
+        self.metric_stage1 = None
         self.max_eval_stage1 = None
+        self.optimizer_stage1 = None
+
+        # Stage 2: Training-based Search (Successive Halving)
+        self.using_zc_metric_stage2 = False
+        self.metric_stage2 = None
+        self.n_candidate = -1
+        self.list_iepoch = None
 
     def _run(self, **kwargs):
         best_network, search_time, total_epoch = self.search(**kwargs)
@@ -19,6 +26,7 @@ class MF_NAS(Algorithm):
         assert self.metric_stage2 is not None
         assert self.list_iepoch is not None
 
+        # Stage 1: Training-free Search
         if self.optimizer_stage1 == 'FLS':
             optimizer_stage1 = FirstImprovementLS()
         elif self.optimizer_stage1 == 'BLS':
@@ -35,28 +43,35 @@ class MF_NAS(Algorithm):
         network_history_stage1 = optimizer_stage1.network_history[:self.max_eval_stage1]
         score_history_stage1 = optimizer_stage1.score_history[:self.max_eval_stage1]
 
+        ## Remove duplication
         if self.problem.search_space.name == 'NB-101':
             h_history_stage1 = []
             for network in network_history_stage1:
                 h = self.problem.get_h(network.genotype)
                 h_history_stage1.append(h)
-            _, ids = np.unique(h_history_stage1, return_index=True)
+            _, I = np.unique(h_history_stage1, return_index=True)
 
         else:
             genotype_history_stage1 = np.array([network.genotype for network in network_history_stage1])
-            _, ids = np.unique(genotype_history_stage1, axis=0, return_index=True)
-        network_history_stage1 = np.array(network_history_stage1)[ids]
-        score_history_stage1 = np.array(score_history_stage1)[ids]
+            _, I = np.unique(genotype_history_stage1, axis=0, return_index=True)
+        network_history_stage1 = np.array(network_history_stage1)[I]
+        score_history_stage1 = np.array(score_history_stage1)[I]
 
-        ids = np.flip(np.argsort(score_history_stage1))
-        network_history_stage1 = network_history_stage1[ids]
+        ## Sort
+        I = np.flip(np.argsort(score_history_stage1))
+        network_history_stage1 = network_history_stage1[I]
 
-        topK_found_solutions = network_history_stage1[:self.k]
+        # Stage 2: Training-based Search
+        ## Get top-k best solutions in terms of training-free metric value. They are the input of SH.
+        topK_found_solutions = network_history_stage1[:self.n_candidate]
+
+        ## Initialize Successive Halving
         optimizer_stage2 = SuccessiveHalving()
         optimizer_stage2.adapt(self.problem)
         optimizer_stage2.using_zc_metric = self.using_zc_metric_stage2
         optimizer_stage2.metric = self.metric_stage2
         optimizer_stage2.list_iepoch = self.list_iepoch
+
         best_network, search_time, total_epoch = optimizer_stage2.search(topK_found_solutions)
         return best_network, search_time, total_epoch
 

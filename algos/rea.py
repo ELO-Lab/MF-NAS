@@ -12,6 +12,7 @@ class REA(Algorithm):
         self.pop_size = None
         self.tournament_size = None
         self.warm_up = False
+        self.metric_warmup = None
         self.zc_metric = None
         self.n_sample_warmup = 0
         self.prob_mutation = 1.0
@@ -24,28 +25,13 @@ class REA(Algorithm):
         best_network, search_time, total_epoch = self.search(**kwargs)
         return best_network, search_time, total_epoch
 
-    def search(self, **kwargs):
-        assert self.pop_size is not None
-        assert self.tournament_size is not None
-
-        if self.warm_up:
-            assert self.n_sample_warmup != 0
-            assert self.metric_warmup is not None
-        if not self.using_zc_metric:
-            metric = self.metric + f'_{self.iepoch}'
-        else:
-            metric = self.metric
-        self._reset()
-
+    def initialize(self, metric):
         n_eval = 0
         total_time, total_epoch = 0.0, 0.0
 
-        times, best_scores = [0.0], [-np.inf]
+        best_scores = [-np.inf]
         best_network = None
         population = []  # (validation, spec) tuples
-
-        # For the first population_size individuals, seed the population with randomly
-        # generated cells.
 
         init_pop = []
         if not self.warm_up:
@@ -74,6 +60,23 @@ class REA(Algorithm):
                 best_scores.append(network.score)
                 best_network = deepcopy(network)
             self.trend_best_network.append(best_network)
+        return population, n_eval, total_time, total_epoch, best_scores, best_network
+
+    def search(self, **kwargs):
+        assert self.pop_size is not None
+        assert self.tournament_size is not None
+
+        if self.warm_up:
+            assert self.n_sample_warmup != 0
+            assert self.metric_warmup is not None
+        if not self.using_zc_metric:
+            metric = self.metric + f'_{self.iepoch}'
+        else:
+            metric = self.metric
+        self._reset()
+
+        # Initialize population
+        population, n_eval, total_time, total_epoch, best_scores, best_network = self.initialize(metric)
 
         # After the population is seeded, proceed with evolving the population.
         while (n_eval <= self.problem.max_eval) and (total_time <= self.problem.max_time):

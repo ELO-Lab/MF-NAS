@@ -8,10 +8,16 @@ class SuccessiveHalving(Algorithm):
     def __init__(self):
         super().__init__()
         self.list_iepoch = None
+        self.n_candidate = -1
 
     def _run(self):
         assert len(self.list_iepoch) is not None
 
+        list_network = self.sample()
+        best_network, search_time, total_epoch = self.search(list_network)
+        return best_network, search_time, total_epoch
+
+    def sample(self):
         list_network = []
         for _ in range(self.n_candidate):
             network = Network()
@@ -21,8 +27,7 @@ class SuccessiveHalving(Algorithm):
                     network.genotype = genotype
                     break
             list_network.append(network)
-        best_network, search_time, total_epoch = self.search(list_network)
-        return best_network, search_time, total_epoch
+        return list_network
 
     def search(self, list_network):
         assert len(list_network) != 0

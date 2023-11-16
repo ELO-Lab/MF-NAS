@@ -15,6 +15,7 @@ def get_problem(name):
         'Maximum budget (seconds)': max_time,
         'Maximum budget (evaluations)': max_eval,
     }
+    print('Problem:')
     print_info(info_problem)
 
     if '201' in name:
@@ -46,4 +47,7 @@ def get_algorithm(name):
         raise ValueError(f'Not support this algorithm: {name}')
     print(f'- Algorithm: {name}')
     algo.set(configs)
+
+    print('Algorithm:')
+    print_info(configs)
     return algo, configs
