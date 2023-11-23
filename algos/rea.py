@@ -22,13 +22,10 @@ class REA(Algorithm):
         self.trend_time = []
 
     def _run(self, **kwargs):
-        best_network, search_time, total_epoch = self.search(**kwargs)
-        return best_network, search_time, total_epoch
+        best_network = self.search(**kwargs)
+        return best_network, self.total_time, self.total_epoch
 
     def initialize(self, metric):
-        n_eval = 0
-        total_time, total_epoch = 0.0, 0.0
-
         best_scores = [-np.inf]
         best_network = None
         population = []  # (validation, spec) tuples
@@ -50,17 +47,17 @@ class REA(Algorithm):
             init_pop, warmup_time = run_warm_up(self.n_sample_warmup, self.pop_size, self.problem, self.metric_warmup)
         for network in init_pop:
             time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
-            n_eval += 1
-            total_time += time
-            total_epoch += self.iepoch
-            self.trend_time.append(total_time)
+            self.n_eval += 1
+            self.total_time += time
+            self.total_epoch += self.iepoch
+            self.trend_time.append(self.total_time)
             population.append((network.score, network.genotype.copy()))
 
             if network.score > best_scores[-1]:
                 best_scores.append(network.score)
                 best_network = deepcopy(network)
             self.trend_best_network.append(best_network)
-        return population, n_eval, total_time, total_epoch, best_scores, best_network
+        return population, best_scores, best_network
 
     def search(self, **kwargs):
         assert self.pop_size is not None
@@ -76,19 +73,19 @@ class REA(Algorithm):
         self._reset()
 
         # Initialize population
-        population, n_eval, total_time, total_epoch, best_scores, best_network = self.initialize(metric)
+        population, best_scores, best_network = self.initialize(metric)
 
         # After the population is seeded, proceed with evolving the population.
-        while (n_eval <= self.problem.max_eval) and (total_time <= self.problem.max_time):
+        while (self.n_eval <= self.problem.max_eval) and (self.n_eval <= self.problem.max_time):
             candidates = random_combination(population, self.tournament_size)
             best_candidate = sorted(candidates, key=lambda i: i[0])[-1][1]
             new_network = mutate(best_candidate, self.prob_mutation, problem=self.problem)
 
             time = self.problem.evaluate(new_network, using_zc_metric=self.using_zc_metric, metric=metric)
-            n_eval += 1
-            total_time += time
-            total_epoch += self.iepoch
-            self.trend_time.append(total_time)
+            self.n_eval += 1
+            self.total_time += time
+            self.total_epoch += self.iepoch
+            self.trend_time.append(self.total_time)
 
             # In regularized evolution, we kill the oldest individual in the population.
             population.append((new_network.score, new_network.genotype.copy()))
@@ -97,7 +94,7 @@ class REA(Algorithm):
             if new_network.score > best_scores[-1]:
                 best_scores.append(new_network.score)
                 best_network = deepcopy(new_network)
-        return best_network, total_time, total_epoch
+        return best_network
 
 def run_warm_up(n_sample, k, problem, metric):
     list_network, list_scores = [], []
