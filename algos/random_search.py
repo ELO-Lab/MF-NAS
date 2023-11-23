@@ -1,6 +1,7 @@
 from . import Algorithm
 from models import Network
 from copy import deepcopy
+from .utils import sampling_solution, update_log
 
 class RandomSearch(Algorithm):
     def __init__(self):
@@ -17,53 +18,33 @@ class RandomSearch(Algorithm):
         self.score_history = []
 
     def _run(self, **kwargs):
-        best_network, search_time, total_epoch = self.search(**kwargs)
-        return best_network, search_time, total_epoch
+        self._reset()
+        max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
+        max_time = self.problem.max_time if self.max_time is None else self.max_time
+        metric = self.metric + f'_{self.iepoch}' if not self.using_zc_metric else self.metric
+
+        best_network = self.search(max_eval=max_eval, max_time=max_time, metric=metric, **kwargs)
+        return best_network, self.total_time, self.total_epoch
 
     def search(self, **kwargs):
-        self._reset()
-        if not self.using_zc_metric:
-            metric = self.metric + f'_{self.iepoch}'
-        else:
-            metric = self.metric
-        n_eval = 0
-        total_time, total_epoch = 0.0, 0.0
+        max_eval = kwargs['max_eval']
+        max_time = kwargs['max_time']
+        metric = kwargs['metric']
 
-        while True:
-            network = Network()
-            network.genotype = self.problem.search_space.sample(genotype=True)
-            if self.problem.search_space.is_valid(network.genotype):
-                break
-        time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
+        best_network = Network()
+        best_network.score = -99999999
 
-        n_eval += 1
-        total_time += time
-        total_epoch += self.iepoch
-
-        best_network = deepcopy(network)
-
-        self.trend_best_network = [best_network]
-        self.trend_time = [total_time]
-
-        self.network_history, self.score_history = [deepcopy(network)], [best_network.score]
-        while (n_eval <= self.problem.max_eval) and (total_time <= self.problem.max_time):
-            network = Network()
-            while True:
-                network.genotype = self.problem.search_space.sample(genotype=True)
-                if self.problem.search_space.is_valid(network.genotype):
-                    break
+        while (self.n_eval <= max_eval) and (self.total_time <= max_time):
+            network = sampling_solution(problem=self.problem)
             time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
+
+            self.n_eval += 1
+            self.total_time += time
+            self.total_epoch += self.iepoch
 
             if network.score > best_network.score:
                 best_network = deepcopy(network)
-            self.trend_best_network.append(best_network)
-            self.network_history.append(deepcopy(network))
-            self.score_history.append(network.score)
 
-            n_eval += 1
-            total_time += time
-            total_epoch += self.iepoch
+            update_log(best_network=best_network, cur_network=network, algorithm=self)
 
-        best_network = self.trend_best_network[-1]
-        search_time = total_time
-        return best_network, search_time, total_epoch
+        return best_network

@@ -1,4 +1,4 @@
-from . import Algorithm, BestImprovementLS, FirstImprovementLS, SuccessiveHalving
+from . import Algorithm, IteratedLocalSearch, RandomSearch, SuccessiveHalving
 import numpy as np
 
 class MF_NAS(Algorithm):
@@ -17,28 +17,32 @@ class MF_NAS(Algorithm):
         self.list_iepoch = None
 
     def _run(self, **kwargs):
-        best_network, search_time, total_epoch = self.search(**kwargs)
-        return best_network, search_time, total_epoch
-
-    def search(self, **kwargs):
         assert self.max_eval_stage1 is not None
         assert self.metric_stage1 is not None
         assert self.metric_stage2 is not None
         assert self.list_iepoch is not None
 
+        best_network, search_time, total_epoch = self.search(**kwargs)
+        return best_network, self.total_time, self.total_epoch
+
+    def search(self, **kwargs):
         # Stage 1: Training-free Search
         if self.optimizer_stage1 == 'FLS':
-            optimizer_stage1 = FirstImprovementLS()
+            optimizer_stage1 = IteratedLocalSearch(first_improvement=True)
         elif self.optimizer_stage1 == 'BLS':
-            optimizer_stage1 = BestImprovementLS()
+            optimizer_stage1 = IteratedLocalSearch(first_improvement=False)
+        elif self.optimizer_stage1 == 'RS':
+            optimizer_stage1 = RandomSearch()
         else:
             raise ValueError(f'Not support this optimizer in MF-NAS framework: {self.optimizer_stage1}')
         optimizer_stage1.adapt(self.problem)
         optimizer_stage1.using_zc_metric = self.using_zc_metric_stage1
-        optimizer_stage1.metric = self.metric_stage1
-        optimizer_stage1.max_eval = self.max_eval_stage1
 
-        _, search_cost, _ = optimizer_stage1.search(**kwargs)
+        _ = optimizer_stage1.search(max_time=9999999999, max_eval=self.max_eval_stage1,
+                                                    metric=self.metric_stage1, **kwargs)
+
+        self.total_time += optimizer_stage1.total_time
+        self.total_epoch += optimizer_stage1.total_epoch
 
         network_history_stage1 = optimizer_stage1.network_history[:self.max_eval_stage1]
         score_history_stage1 = optimizer_stage1.score_history[:self.max_eval_stage1]
@@ -72,6 +76,8 @@ class MF_NAS(Algorithm):
         optimizer_stage2.metric = self.metric_stage2
         optimizer_stage2.list_iepoch = self.list_iepoch
 
-        best_network, search_time, total_epoch = optimizer_stage2.search(topK_found_solutions)
-        return best_network, search_time, total_epoch
+        best_network = optimizer_stage2.search(topK_found_solutions)
+        self.total_time += optimizer_stage2.total_time
+        self.total_epoch += optimizer_stage2.total_epoch
+        return best_network
 

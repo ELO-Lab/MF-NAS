@@ -3,6 +3,7 @@ from models import Network
 from copy import deepcopy
 import numpy as np
 import math
+from .utils import sampling_solution
 
 class SuccessiveHalving(Algorithm):
     def __init__(self):
@@ -14,18 +15,13 @@ class SuccessiveHalving(Algorithm):
         assert len(self.list_iepoch) is not None
 
         list_network = self.sample()
-        best_network, search_time, total_epoch = self.search(list_network)
-        return best_network, search_time, total_epoch
+        best_network = self.search(list_network)
+        return best_network, self.total_time, self.total_epoch
 
     def sample(self):
         list_network = []
         for _ in range(self.n_candidate):
-            network = Network()
-            while True:
-                genotype = self.problem.search_space.sample(genotype=True)
-                if self.problem.search_space.is_valid(genotype):
-                    network.genotype = genotype
-                    break
+            network = sampling_solution(self.problem)
             list_network.append(network)
         return list_network
 
@@ -34,42 +30,40 @@ class SuccessiveHalving(Algorithm):
         checkpoint = 0
         iepoch = self.list_iepoch[checkpoint]
 
-        total_time, total_epoch = 0.0, 0
         list_network = np.array(list_network)
 
         last_iepoch = 0
-        best_network = None
-        score_best_network = -np.inf
+        best_network = Network()
+        best_network.score = -np.inf
 
-        n_eval = 0
         last = False
-        while (n_eval <= self.problem.max_eval) and (total_time <= self.problem.max_time):
+        while self.total_time <= self.problem.max_time:
             evaluated_network = []
             network_scores = []
 
             for network in list_network:
                 time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=self.metric+f'_{iepoch}')
                 diff_epoch = network.info['cur_iepoch'][-1] - last_iepoch
-                total_time += time
-                total_epoch += diff_epoch
+                self.total_time += time
+                self.total_epoch += diff_epoch
 
                 evaluated_network.append(network)
                 network_scores.append(network.score)
 
-                if total_time >= self.problem.max_time:
-                    total_time -= time
-                    total_epoch -= diff_epoch
+                if self.total_time >= self.problem.max_time:
+                    self.total_time -= time
+                    self.total_epoch -= diff_epoch
 
-                    return best_network, total_time, total_epoch
+                    return best_network
 
-                if network.score > score_best_network:
+                if network.score > best_network.score:
                     best_network = deepcopy(network)
-                    score_best_network = network.score
+
             ids = np.flip(np.argsort(network_scores))
             list_network = np.array(evaluated_network)[ids]
             list_network = list_network[:math.ceil(len(list_network) / 2)]
             if len(list_network) == 1 or last:
-                return best_network, total_time, total_epoch
+                return best_network
 
             checkpoint += 1
             last_iepoch = iepoch

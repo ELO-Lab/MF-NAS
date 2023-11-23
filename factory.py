@@ -32,9 +32,9 @@ def get_algorithm(name):
         all_configs = yaml.safe_load(file)
     configs = all_configs[name]
     if name == 'FLS':
-        algo = FirstImprovementLS()
+        algo = IteratedLocalSearch(first_improvement=True)
     elif name == 'BLS':
-        algo = BestImprovementLS()
+        algo = IteratedLocalSearch(first_improvement=False)
     elif name == 'RS':
         algo = RandomSearch()
     elif 'REA' in name:
