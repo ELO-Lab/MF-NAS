@@ -13,9 +13,10 @@ class SuccessiveHalving(Algorithm):
 
     def _run(self):
         assert len(self.list_iepoch) is not None
+        max_time = self.problem.max_time if self.max_time is None else self.max_time
 
         list_network = self.sample()
-        best_network = self.search(list_network)
+        best_network = self.search(list_network, max_time=max_time)
         return best_network, self.total_time, self.total_epoch
 
     def sample(self):
@@ -25,8 +26,9 @@ class SuccessiveHalving(Algorithm):
             list_network.append(network)
         return list_network
 
-    def search(self, list_network):
+    def search(self, list_network, **kwargs):
         assert len(list_network) != 0
+        max_time = kwargs['max_time']
         checkpoint = 0
         iepoch = self.list_iepoch[checkpoint]
 
@@ -37,7 +39,7 @@ class SuccessiveHalving(Algorithm):
         best_network.score = -np.inf
 
         last = False
-        while self.total_time <= self.problem.max_time:
+        while self.total_time <= max_time:
             evaluated_network = []
             network_scores = []
 
@@ -50,7 +52,7 @@ class SuccessiveHalving(Algorithm):
                 evaluated_network.append(network)
                 network_scores.append(network.score)
 
-                if self.total_time >= self.problem.max_time:
+                if self.total_time >= max_time:
                     self.total_time -= time
                     self.total_epoch -= diff_epoch
 

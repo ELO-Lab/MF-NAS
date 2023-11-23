@@ -49,7 +49,6 @@ class IteratedLocalSearch(Algorithm):
 
         while (self.n_eval <= max_eval) and (self.total_time <= max_time):
             improved = False
-            all_neighbors = []
 
             # Get all neighbors within the distance k = 1
             list_ids = get_indices(cur_network.genotype, 1)
@@ -59,28 +58,29 @@ class IteratedLocalSearch(Algorithm):
                 list_ids.remove(list_ids[i])
 
                 list_neighbors = get_neighbors(cur_network=cur_network, ids=selected_ids, problem=self.problem)
-                all_neighbors += list_neighbors
 
-            # For each neighbor, evaluate and compare to the current solution
-            for neighbor_network in all_neighbors:
-                time = self.problem.evaluate(neighbor_network, using_zc_metric=self.using_zc_metric, metric=metric)
+                ## For each neighbor, evaluate and compare to the current solution
+                for neighbor_network in list_neighbors:
+                    time = self.problem.evaluate(neighbor_network, using_zc_metric=self.using_zc_metric, metric=metric)
 
-                self.n_eval += 1
-                self.total_time += time
-                self.total_epoch += self.iepoch
+                    self.n_eval += 1
+                    self.total_time += time
+                    self.total_epoch += self.iepoch
 
-                ## Update the best solution so far
-                if neighbor_network.score > best_network.score:
-                    best_network = deepcopy(neighbor_network)
-                update_log(best_network=best_network, cur_network=cur_network, algorithm=self)
+                    ## Update the best solution so far
+                    if neighbor_network.score > best_network.score:
+                        best_network = deepcopy(neighbor_network)
+                    update_log(best_network=best_network, cur_network=neighbor_network, algorithm=self)
 
-                ## Update the current solution
-                if neighbor_network.score >= cur_network.score:
-                    cur_network = deepcopy(neighbor_network)
-                    improved = True
+                    ## Update the current solution
+                    if neighbor_network.score >= cur_network.score:
+                        cur_network = deepcopy(neighbor_network)
+                        improved = True
 
-                    if self.first_improvement:
-                        break
+                        if self.first_improvement:
+                            break
+                if self.first_improvement and improved:
+                    break
 
             # If the current solution cannot be improved, the algorithm is stuck.
             # Therefore, we perform the escape operator.

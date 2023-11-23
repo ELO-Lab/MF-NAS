@@ -1,6 +1,7 @@
 from . import Algorithm, IteratedLocalSearch, RandomSearch, SuccessiveHalving
 import numpy as np
 
+
 class MF_NAS(Algorithm):
     def __init__(self):
         super().__init__()
@@ -22,7 +23,7 @@ class MF_NAS(Algorithm):
         assert self.metric_stage2 is not None
         assert self.list_iepoch is not None
 
-        best_network, search_time, total_epoch = self.search(**kwargs)
+        best_network = self.search(**kwargs)
         return best_network, self.total_time, self.total_epoch
 
     def search(self, **kwargs):
@@ -39,7 +40,7 @@ class MF_NAS(Algorithm):
         optimizer_stage1.using_zc_metric = self.using_zc_metric_stage1
 
         _ = optimizer_stage1.search(max_time=9999999999, max_eval=self.max_eval_stage1,
-                                                    metric=self.metric_stage1, **kwargs)
+                                    metric=self.metric_stage1, **kwargs)
 
         self.total_time += optimizer_stage1.total_time
         self.total_epoch += optimizer_stage1.total_epoch
@@ -76,8 +77,9 @@ class MF_NAS(Algorithm):
         optimizer_stage2.metric = self.metric_stage2
         optimizer_stage2.list_iepoch = self.list_iepoch
 
-        best_network = optimizer_stage2.search(topK_found_solutions)
+        best_network = optimizer_stage2.search(topK_found_solutions, max_time=self.problem.max_time - optimizer_stage1.total_time)
         self.total_time += optimizer_stage2.total_time
         self.total_epoch += optimizer_stage2.total_epoch
+
         return best_network
 

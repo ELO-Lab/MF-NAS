@@ -8,7 +8,7 @@ class Algorithm(ABC):
 
         self.using_zc_metric = False
         self.metric = None
-        self.iepoch = -1  # for training-based search objectives
+        self.iepoch = 0  # for training-based search objectives
 
         self.n_eval = 0
         self.total_time, self.total_epoch = 0.0, 0.0
