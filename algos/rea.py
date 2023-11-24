@@ -74,7 +74,7 @@ class REA(Algorithm):
         population, best_scores, best_network = self.initialize(metric)
 
         # After the population is seeded, proceed with evolving the population.
-        while (self.n_eval <= self.problem.max_eval) and (self.total_time <= self.problem.max_time):
+        while (self.n_eval < self.problem.max_eval) and (self.total_time < self.problem.max_time):
             candidates = random_combination(population, self.tournament_size)
             best_candidate = sorted(candidates, key=lambda i: i[0])[-1][1]
             new_network = mutate(best_candidate, self.prob_mutation, problem=self.problem)

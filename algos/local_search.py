@@ -45,7 +45,7 @@ class IteratedLocalSearch(Algorithm):
         cur_network, best_network = deepcopy(init_network), deepcopy(init_network)
         update_log(best_network=best_network, cur_network=cur_network, algorithm=self)
 
-        while (self.n_eval <= max_eval) and (self.total_time <= max_time):
+        while (self.n_eval < max_eval) and (self.total_time < max_time):
             improved = False
 
             # Get all neighbors within the distance k = 1

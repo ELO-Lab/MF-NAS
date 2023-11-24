@@ -34,7 +34,7 @@ class RandomSearch(Algorithm):
         best_network = Network()
         best_network.score = -99999999
 
-        while (self.n_eval <= max_eval) and (self.total_time <= max_time):
+        while (self.n_eval < max_eval) and (self.total_time < max_time):
             network = sampling_solution(problem=self.problem)
             cost_time = self.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
             self.total_time += cost_time

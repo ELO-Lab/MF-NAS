@@ -81,7 +81,7 @@ class GA(Algorithm):
         best_network = deepcopy(self.trend_best_network[-1])
 
         # After the population is seeded, proceed with evolving the population.
-        while (self.n_eval <= max_eval) and (self.total_time <= max_time):
+        while (self.n_eval < max_eval) and (self.total_time < max_time):
             parents = selection(self.pop, tournament_size=2, n_survive=self.pop_size)
 
             ## Crossover

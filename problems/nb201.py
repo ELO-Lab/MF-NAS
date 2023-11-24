@@ -79,6 +79,8 @@ class NB_201(Problem):
             score *= -1
         network.score = score
         time = info['train_time'] * dif_epoch
+        if self.dataset == 'cifar10':
+            time /= 2
         network.info['cur_iepoch'].append(iepoch)
         network.info['train_time'].append(time)
         return time

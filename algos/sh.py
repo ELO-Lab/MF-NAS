@@ -39,7 +39,7 @@ class SuccessiveHalving(Algorithm):
         best_network.score = -np.inf
 
         last = False
-        while self.total_time <= max_time:
+        while self.total_time < max_time:
             evaluated_network = []
             network_scores = []
 
