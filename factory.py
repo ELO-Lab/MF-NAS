@@ -39,6 +39,8 @@ def get_algorithm(name):
         algo = RandomSearch()
     elif 'REA' in name:
         algo = REA()
+    elif 'GA' in name:
+        algo = GA()
     elif name == 'SH':
         algo = SuccessiveHalving()
     elif name == 'MF-NAS':

@@ -13,7 +13,6 @@ class REA(Algorithm):
         self.tournament_size = None
         self.warm_up = False
         self.metric_warmup = None
-        self.zc_metric = None
         self.n_sample_warmup = 0
         self.prob_mutation = 1.0
 

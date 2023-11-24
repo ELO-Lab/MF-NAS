@@ -26,7 +26,8 @@ def run(kwargs):
     trend_performance, trend_search_cost, trend_total_epoch = [], [], []
 
     dt_string = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
-    path_res = f'./exp/{opt_name}_{search_space}_' + dt_string
+    root = './exp' if kwargs.path_res is None else kwargs.path_res
+    path_res = f'{root}/{opt_name}_{search_space}_' + dt_string
     os.mkdir(path_res)
 
     os.mkdir(path_res + '/configs')
@@ -72,10 +73,11 @@ if __name__ == '__main__':
 
     ''' ALGORITHM '''
     parser.add_argument('--optimizer', type=str, default='MF-NAS', help='the search strategy',
-    choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'REA+W', 'MF-NAS'])
+    choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'GA', 'REA+W', 'MF-NAS'])
 
     ''' ENVIRONMENT '''
     parser.add_argument('--n_run', type=int, default=31, help='number of experiment runs')
+    parser.add_argument('--path_res', type=str, default=None, help='path for saving experiment results')
     parser.add_argument('--verbose', action='store_true')
 
     args = parser.parse_args()

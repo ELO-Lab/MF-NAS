@@ -21,6 +21,14 @@ REA:
     tournament_size: 10
     prob_mutation: 1.0
 
+GA:
+    using_zc_metric: False
+    metric: val_acc
+    iepoch: 12
+    pop_size: 10
+    tournament_size: 10
+    prob_mutation: 1.0
+
 REA+W:
     using_zc_metric: False
     metric: val_acc
