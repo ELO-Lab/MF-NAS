@@ -46,9 +46,8 @@ class REA(Algorithm):
         else:
             init_pop, warmup_time = run_warm_up(self.n_sample_warmup, self.pop_size, self.problem, self.metric_warmup)
         for network in init_pop:
-            time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
-            self.n_eval += 1
-            self.total_time += time
+            cost_time = self.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
+            self.total_time += cost_time
             self.total_epoch += self.iepoch
             self.trend_time.append(self.total_time)
             population.append((network.score, network.genotype.copy()))
@@ -81,9 +80,8 @@ class REA(Algorithm):
             best_candidate = sorted(candidates, key=lambda i: i[0])[-1][1]
             new_network = mutate(best_candidate, self.prob_mutation, problem=self.problem)
 
-            time = self.problem.evaluate(new_network, using_zc_metric=self.using_zc_metric, metric=metric)
-            self.n_eval += 1
-            self.total_time += time
+            cost_time = self.evaluate(new_network, using_zc_metric=self.using_zc_metric, metric=metric)
+            self.total_time += cost_time
             self.total_epoch += self.iepoch
             self.trend_time.append(self.total_time)
 

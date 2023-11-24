@@ -36,10 +36,8 @@ class RandomSearch(Algorithm):
 
         while (self.n_eval <= max_eval) and (self.total_time <= max_time):
             network = sampling_solution(problem=self.problem)
-            time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
-
-            self.n_eval += 1
-            self.total_time += time
+            cost_time = self.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
+            self.total_time += cost_time
             self.total_epoch += self.iepoch
 
             if network.score > best_network.score:

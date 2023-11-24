@@ -13,6 +13,11 @@ class Algorithm(ABC):
         self.n_eval = 0
         self.total_time, self.total_epoch = 0.0, 0.0
 
+    def evaluate(self, network, using_zc_metric, metric):
+        cost_time = self.problem.evaluate(network, using_zc_metric=using_zc_metric, metric=metric)
+        self.n_eval += 1
+        return cost_time
+
     def reset(self):
         self.n_eval = 0
         self.total_time, self.total_epoch = 0.0, 0.0
