@@ -13,6 +13,8 @@ class Algorithm(ABC):
         self.n_eval = 0
         self.total_time, self.total_epoch = 0.0, 0.0
 
+        self.search_log = []
+
     def evaluate(self, network, using_zc_metric, metric):
         cost_time = self.problem.evaluate(network, using_zc_metric=using_zc_metric, metric=metric)
         self.n_eval += 1
@@ -33,6 +35,13 @@ class Algorithm(ABC):
         set_seed(seed)
         self.reset()
         network, search_cost, total_epoch = self._run(**kwargs)
+        F = [self.problem.get_test_performance(network) for network in self.trend_best_network]
+        solution = [''.join(list(map(str, network.genotype))) for network in self.trend_best_network]
+        self.search_log = {
+            'solution': solution,
+            'fitness': F
+        }
+
         return network, search_cost, total_epoch
 
     @abstractmethod
