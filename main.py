@@ -58,6 +58,7 @@ def run(kwargs):
             'Search cost (in epochs)': total_epoch,
         }
         p.dump(info_results, open(path_res + f'/results/run_{run_id}_results.p', 'wb'))
+        p.dump(opt.search_log, open(path_res + f'/results/log_{run_id}.p', 'wb'))
     logging.info(f'Mean: {np.round(np.mean(trend_performance), 2)} \t Std: {np.round(np.std(trend_performance), 2)}')
     logging.info(f'Search cost (in seconds): {np.round(np.mean(trend_search_cost))}')
     logging.info(f'Search cost (in epochs): {np.round(np.mean(trend_total_epoch))}')
