@@ -13,12 +13,12 @@ class Algorithm(ABC):
         self.n_eval = 0
         self.total_time, self.total_epoch = 0.0, 0.0
 
-        self.search_log = []
+        # self.search_log = {}
 
-    def evaluate(self, network, using_zc_metric, metric):
-        cost_time = self.problem.evaluate(network, using_zc_metric=using_zc_metric, metric=metric)
+    def evaluate(self, network, using_zc_metric, metric, iepoch):
+        info, cost_time = self.problem.evaluate(network, using_zc_metric=using_zc_metric, metric=metric, iepoch=iepoch)
         self.n_eval += 1
-        return cost_time
+        return info, cost_time
 
     def reset(self):
         self.n_eval = 0
@@ -35,6 +35,16 @@ class Algorithm(ABC):
         set_seed(seed)
         self.reset()
         best_network, search_cost, total_epoch = self._run(**kwargs)
+
+        # solution = [''.join(list(map(str, x.genotype))) for x in self.trend_best_network]
+        # search_F = [x.score for x in self.trend_best_network]
+        # test_F = [self.problem.get_test_performance(x) for x in self.trend_best_network]
+        #
+        # self.search_log = {
+        #     'solution': solution,
+        #     'search_F': search_F,
+        #     'test_F': test_F
+        # }
 
         return best_network, search_cost, total_epoch
 

@@ -38,55 +38,46 @@ class NB_201(Problem):
         self.zc_database = json.load(open(ROOT_DIR + f'/database/nb201/zc_database.json'))
         self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nb201/[{self.dataset}]_data.p', 'rb'))
 
-    def evaluate(self, network, **kwargs):
-        using_zc_metric = bool(kwargs['using_zc_metric'])
-        if using_zc_metric:
-            metric = kwargs['metric']
-            time = self.zc_evaluate(network, metric=metric)
-        else:
-            metric = '_'.join(kwargs['metric'].split('_')[:-1])
-            iepoch = int(kwargs['metric'].split('_')[-1])
-            time = self.train(network, metric=metric, iepoch=iepoch)
-        return time
-
     def zc_evaluate(self, network, **kwargs):
         metric = kwargs['metric']
-        genotype = network.genotype
-        phenotype = self.search_space.decode(genotype)
+        phenotype = self.search_space.decode(network.genotype)
         op_indices = str(convert_str_to_op_indices(phenotype))
 
         if metric in ['flops', 'params']:
-            h = ''.join(map(str, genotype))
+            h = ''.join(map(str, network.genotype))
             if metric == 'flops':
                 score, time = self.benchmark_database['200'][h]['FLOPs'], self.zc_database[self.dataset][op_indices]['flops']['time']
             else:
                 score, time = self.benchmark_database['200'][h]['params'], self.zc_database[self.dataset][op_indices]['params']['time']
         else:
             score, time = self.zc_database[self.dataset][op_indices][metric]['score'], self.zc_database[self.dataset][op_indices][metric]['time']
-        network.score = score
-        return time
+        info = {metric: score}
+        return info, time
 
     def train(self, network, **kwargs):
-        metric = kwargs['metric']
         iepoch = kwargs['iepoch']
-        genotype = network.genotype
         dif_epoch = iepoch - network.info['cur_iepoch'][-1]
 
-        h = ''.join(map(str, genotype))
+        h = ''.join(map(str, network.genotype))
         info = self.benchmark_database['200'][h]
-        score = info[metric][iepoch - 1]
-        if 'loss' in metric:
-            score *= -1
-        network.score = score
-        time = info['train_time'] * dif_epoch
+        all_infos = {
+            'train_acc': info['train_acc'][iepoch - 1],
+            'train_loss': info['train_loss'][iepoch - 1],
+            'val_acc': info['val_acc'][iepoch - 1],
+            'val_loss': info['val_loss'][iepoch - 1],
+        }
+        train_time = info['train_time'] * dif_epoch
         if self.dataset == 'cifar10':
-            time /= 2
+            train_time /= 2
         network.info['cur_iepoch'].append(iepoch)
-        network.info['train_time'].append(time)
-        return time
+        network.info['train_time'].append(train_time)
+        return all_infos, train_time
 
     def get_test_performance(self, network, **kwargs):
-        genotype = network.genotype
-        h = ''.join(map(str, genotype))
-        test_acc = np.round(self.benchmark_database['200'][h]['test_acc'][-1] * 100, 2)
-        return test_acc
+        h = ''.join(map(str, network.genotype))
+        info = self.benchmark_database['200'][h]
+        score = np.round(info['test_acc'][-1] * 100, 2)
+        train_time = info['train_time'] * 200
+        if self.dataset == 'cifar10':
+            train_time /= 2
+        return score, train_time

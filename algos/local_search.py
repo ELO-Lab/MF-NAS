@@ -25,31 +25,35 @@ class IteratedLocalSearch(Algorithm):
         self._reset()
         max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
         max_time = self.problem.max_time if self.max_time is None else self.max_time
-        metric = self.metric + f'_{self.iepoch}' if not self.using_zc_metric else self.metric
+        if not self.using_zc_metric and self.iepoch is None:
+            raise ValueError
 
-        best_network = self.search(max_eval=max_eval, max_time=max_time, metric=metric, **kwargs)
+        best_network = self.search(max_eval=max_eval, max_time=max_time, metric=self.metric, iepoch=self.iepoch, **kwargs)
         return best_network, self.total_time, self.total_epoch
 
     def search(self, **kwargs):  # ils
-        max_eval = kwargs['max_eval']
-        max_time = kwargs['max_time']
-        metric = kwargs['metric']
+        max_eval, max_time = kwargs['max_eval'], kwargs['max_time']
+        metric, iepoch = kwargs['metric'], kwargs['iepoch']
 
         # Initialize starting solution
         init_sol = sampling_solution(problem=self.problem)
-        cost_time = self.evaluate(init_sol, using_zc_metric=self.using_zc_metric, metric=metric)
+        info, cost_time = self.evaluate(init_sol, using_zc_metric=self.using_zc_metric, metric=metric, iepoch=iepoch)
+        init_sol.score = info[metric]
+
         self.total_time += cost_time
         self.total_epoch += self.iepoch
 
         update_log(best_network=init_sol, cur_network=init_sol, algorithm=self)
 
-        lo = self.local_search(init_sol, metric)
+        lo = self.local_search(init_sol, metric, iepoch)
         best_lo = deepcopy(lo)
 
         while (self.n_eval < max_eval) and (self.total_time < max_time):
             s = deepcopy(best_lo)
             s = self.escape_operator(s)
-            cost_time = self.evaluate(s, using_zc_metric=self.using_zc_metric, metric=metric)
+            info, cost_time = self.evaluate(s, using_zc_metric=self.using_zc_metric, metric=metric, iepoch=iepoch)
+            s.score = info[metric]
+
             self.total_time += cost_time
             self.total_epoch += self.iepoch
             if s.score > self.trend_best_network[-1].score:
@@ -57,20 +61,20 @@ class IteratedLocalSearch(Algorithm):
             else:
                 update_log(best_network=self.trend_best_network[-1], cur_network=s, algorithm=self)
 
-            lo = self.local_search(s, metric)
+            lo = self.local_search(s, metric, iepoch)
 
             if lo.score > best_lo.score:
                 best_lo = deepcopy(lo)
 
         return best_lo
 
-    def local_search(self, init_sol, metric):
-        improved, sol = self.neighbor_explorer(init_sol, metric)
+    def local_search(self, init_sol, metric, iepoch):
+        improved, sol = self.neighbor_explorer(init_sol, metric, iepoch)
         while improved:
-            improved, sol = self.neighbor_explorer(sol, metric)
+            improved, sol = self.neighbor_explorer(sol, metric, iepoch)
         return sol
 
-    def neighbor_explorer(self, sol, metric):
+    def neighbor_explorer(self, sol, metric, iepoch):
         improved = False
         best_sol = deepcopy(sol)
 
@@ -88,7 +92,9 @@ class IteratedLocalSearch(Algorithm):
 
         # For each neighbor, evaluate and compare to the current solution
         for new_sol in all_neighbors:
-            cost_time = self.evaluate(new_sol, using_zc_metric=self.using_zc_metric, metric=metric)
+            info, cost_time = self.evaluate(new_sol, using_zc_metric=self.using_zc_metric, metric=metric, iepoch=iepoch)
+            new_sol.score = info[metric]
+
             self.total_time += cost_time
             self.total_epoch += self.iepoch
 

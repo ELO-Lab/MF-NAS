@@ -43,12 +43,13 @@ class GA(Algorithm):
         assert self.tournament_size is not None
         max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
         max_time = self.problem.max_time if self.max_time is None else self.max_time
-        metric = self.metric + f'_{self.iepoch}' if not self.using_zc_metric else self.metric
+        if not self.using_zc_metric and self.iepoch is None:
+            raise ValueError
 
-        best_network = self.search(max_time=max_time, max_eval=max_eval, metric=metric, **kwargs)
+        best_network = self.search(max_eval=max_eval, max_time=max_time, metric=self.metric, iepoch=self.iepoch, **kwargs)
         return best_network, self.total_time, self.total_epoch
 
-    def initialize(self, metric):
+    def initialize(self, metric, iepoch):
         best_network = Network()
         best_network.score = -np.inf
 
@@ -60,7 +61,9 @@ class GA(Algorithm):
         else:
             tmp_pop, warmup_time = run_warm_up(self.n_sample_warmup, self.pop_size, self.problem, self.metric_warmup)
         for network in tmp_pop:
-            cost_time = self.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
+            info, cost_time = self.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric, iepoch=iepoch)
+            network.score = info[metric]
+
             self.total_time += cost_time
             self.total_epoch += self.iepoch
             self.trend_time.append(self.total_time)
@@ -72,12 +75,11 @@ class GA(Algorithm):
             self.pop.append(network)
 
     def search(self, **kwargs):
-        max_eval = kwargs['max_eval']
-        max_time = kwargs['max_time']
-        metric = kwargs['metric']
+        max_eval, max_time = kwargs['max_eval'], kwargs['max_time']
+        metric, iepoch = kwargs['metric'], kwargs['iepoch']
 
         # Initialize population
-        self.initialize(metric)
+        self.initialize(metric, iepoch)
         best_network = deepcopy(self.trend_best_network[-1])
 
         # After the population is seeded, proceed with evolving the population.
@@ -93,7 +95,9 @@ class GA(Algorithm):
 
             ## Evaluate
             for network in offsprings:
-                cost_time = self.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
+                info, cost_time = self.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric, iepoch=iepoch)
+                network.score = info[metric]
+
                 self.total_time += cost_time
                 self.total_epoch += self.iepoch
                 self.trend_time.append(self.total_time)

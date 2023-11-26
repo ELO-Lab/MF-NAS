@@ -28,23 +28,11 @@ class NB_101(Problem):
         self.flops_database = p.load(open(ROOT_DIR + f'/database/nb101/flops_database.p', 'rb'))
         self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nb101/data.p', 'rb'))
 
-    def evaluate(self, network, **kwargs):
-        using_zc_metric = bool(kwargs['using_zc_metric'])
-        if using_zc_metric:
-            metric = kwargs['metric']
-            time = self.zc_evaluate(network, metric=metric)
-        else:
-            metric = '_'.join(kwargs['metric'].split('_')[:-1])
-            iepoch = int(kwargs['metric'].split('_')[-1])
-            time = self.train(network, metric=metric, iepoch=iepoch)
-        return time
-
     def zc_evaluate(self, network, **kwargs):
         metric = kwargs['metric']
-        genotype = network.genotype
 
         time = time_dict[metric]
-        h = self.get_h(network=genotype)
+        h = self.get_h(genotype=network.genotype)
         if metric in ['flops', 'params']:
             if metric == 'flops':
                 score = self.flops_database[h]
@@ -52,34 +40,33 @@ class NB_101(Problem):
                 score = self.benchmark_database['108'][h]['n_params']
         else:
             score = self.zc_database[h][metric]
-        network.score = score
-        return time
+        info = {metric: score}
+        return info, time
 
     def train(self, network, **kwargs):
-        metric = kwargs['metric']
         iepoch = kwargs['iepoch']
-        genotype = network.genotype
 
-        h = self.get_h(network=genotype)
+        h = self.get_h(genotype=network.genotype)
         info = self.benchmark_database[f'{iepoch}'][h]
-        score = info[metric]
-        network.score = score
-        time = info['train_time'] - network.info['train_time'][-1]
+        all_infos = {
+            'train_acc': info['train_acc'],
+            'val_acc': info['val_acc'],
+        }
+        train_time = info['train_time'] - network.info['train_time'][-1]
         network.info['cur_iepoch'].append(iepoch)
-        network.info['train_time'].append(time)
-        return time
+        network.info['train_time'].append(train_time)
+        return all_infos, train_time
 
     def get_test_performance(self, network, **kwargs):
-        genotype = network.genotype
-        h = self.get_h(network=genotype)
+        h = self.get_h(genotype=network.genotype)
         test_acc = np.round(self.benchmark_database['108'][h]['test_acc'] * 100, 2)
-        return test_acc
+        train_time = self.benchmark_database['108'][h]['train_time']
+        return test_acc, train_time
 
-    def get_h(self, network):
-        if isinstance(network, list):
-            network = np.array(network)
-        if isinstance(network, np.ndarray):
-            network = self.search_space.decode(network)
-        modelspec = ModelSpec_(network['matrix'], network['ops'])
+    def get_h(self, genotype):
+        if isinstance(genotype, list):
+            genotype = np.array(genotype)
+        phenotype = self.search_space.decode(genotype)
+        modelspec = ModelSpec_(phenotype['matrix'], phenotype['ops'])
         h = modelspec.hash_spec(['conv3x3-bn-relu', 'conv1x1-bn-relu', 'maxpool3x3'])
         return h

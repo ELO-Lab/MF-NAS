@@ -38,10 +38,14 @@ def run(kwargs):
     json.dump(info_algo, open(path_res + '/configs/info_algo.json', 'w'), indent=4)
 
     best_score = []
+    all_evaluation_cost = []
     for run_id in tqdm(range(1, n_run + 1)):
         best_network, search_cost, total_epoch = opt.run(seed=run_id)
-        test_performance = problem.get_test_performance(best_network)
         best_score.append(best_network.score)
+
+        test_performance, evaluation_cost = problem.get_test_performance(best_network)
+        all_evaluation_cost.append(evaluation_cost)
+
         if verbose:
             network_phenotype = problem.search_space.decode(best_network.genotype)
             print()
@@ -50,6 +54,7 @@ def run(kwargs):
             logging.info(f'Performance: {test_performance} %')
             logging.info(f'Search cost (in seconds): {search_cost}')
             logging.info(f'Search cost (in epochs): {total_epoch}\n')
+            logging.info(f'Evaluation cost (in seconds): {evaluation_cost}\n')
             print('-' * 100)
         trend_performance.append(test_performance)
         trend_search_cost.append(search_cost)
@@ -60,13 +65,15 @@ def run(kwargs):
             'Performance': test_performance,
             'Search cost (in seconds)': search_cost,
             'Search cost (in epochs)': total_epoch,
+            'Evaluation cost (in seconds)': evaluation_cost,
         }
         p.dump(info_results, open(path_res + f'/results/run_{run_id}_results.p', 'wb'))
         p.dump(opt.search_log, open(path_res + f'/results/log_{run_id}.p', 'wb'))
-    logging.info(f'Mean (score): {np.round(np.mean(best_score), 4)} \t Std (score): {np.round(np.std(best_score), 4)}')
+    logging.info(f'Mean (search metric): {np.round(np.mean(best_score), 4)} \t Std (search metric): {np.round(np.std(best_score), 4)}')
     logging.info(f'Mean: {np.round(np.mean(trend_performance), 2)} \t Std: {np.round(np.std(trend_performance), 2)}')
     logging.info(f'Search cost (in seconds): {np.round(np.mean(trend_search_cost))}')
     logging.info(f'Search cost (in epochs): {np.round(np.mean(trend_total_epoch))}')
+    logging.info(f'Evaluation cost (in seconds): {np.round(np.mean(all_evaluation_cost))}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

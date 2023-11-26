@@ -44,7 +44,9 @@ class SuccessiveHalving(Algorithm):
             network_scores = []
 
             for network in list_network:
-                cost_time = self.evaluate(network, using_zc_metric=self.using_zc_metric, metric=self.metric+f'_{iepoch}')
+                info, cost_time = self.evaluate(network, using_zc_metric=self.using_zc_metric, metric=self.metric, iepoch=iepoch)
+                network.score = info[self.metric]
+
                 diff_epoch = network.info['cur_iepoch'][-1] - last_iepoch
                 self.total_time += cost_time
                 self.total_epoch += diff_epoch

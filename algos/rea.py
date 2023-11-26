@@ -21,10 +21,22 @@ class REA(Algorithm):
         self.trend_time = []
 
     def _run(self, **kwargs):
-        best_network = self.search(**kwargs)
+        self._reset()
+        assert self.pop_size is not None
+        assert self.tournament_size is not None
+        if self.warm_up:
+            assert self.n_sample_warmup != 0
+            assert self.metric_warmup is not None
+
+        max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
+        max_time = self.problem.max_time if self.max_time is None else self.max_time
+        if not self.using_zc_metric and self.iepoch is None:
+            raise ValueError
+
+        best_network = self.search(max_eval=max_eval, max_time=max_time, metric=self.metric, iepoch=self.iepoch, **kwargs)
         return best_network, self.total_time, self.total_epoch
 
-    def initialize(self, metric):
+    def initialize(self, metric, iepoch):
         best_scores = [-np.inf]
         best_network = None
         population = []  # (validation, spec) tuples
@@ -45,7 +57,9 @@ class REA(Algorithm):
         else:
             init_pop, warmup_time = run_warm_up(self.n_sample_warmup, self.pop_size, self.problem, self.metric_warmup)
         for network in init_pop:
-            cost_time = self.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
+            info, cost_time = self.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric, iepoch=iepoch)
+            network.score = info[metric]
+
             self.total_time += cost_time
             self.total_epoch += self.iepoch
             self.trend_time.append(self.total_time)
@@ -58,28 +72,20 @@ class REA(Algorithm):
         return population, best_scores, best_network
 
     def search(self, **kwargs):
-        assert self.pop_size is not None
-        assert self.tournament_size is not None
-
-        if self.warm_up:
-            assert self.n_sample_warmup != 0
-            assert self.metric_warmup is not None
-        if not self.using_zc_metric:
-            metric = self.metric + f'_{self.iepoch}'
-        else:
-            metric = self.metric
-        self._reset()
+        max_eval, max_time = kwargs['max_eval'], kwargs['max_time']
+        metric, iepoch = kwargs['metric'], kwargs['iepoch']
 
         # Initialize population
-        population, best_scores, best_network = self.initialize(metric)
+        population, best_scores, best_network = self.initialize(metric, iepoch)
 
         # After the population is seeded, proceed with evolving the population.
-        while (self.n_eval < self.problem.max_eval) and (self.total_time < self.problem.max_time):
+        while (self.n_eval < max_eval) and (self.total_time < max_time):
             candidates = random_combination(population, self.tournament_size)
             best_candidate = sorted(candidates, key=lambda i: i[0])[-1][1]
             new_network = mutate(best_candidate, self.prob_mutation, problem=self.problem)
 
-            cost_time = self.evaluate(new_network, using_zc_metric=self.using_zc_metric, metric=metric)
+            info, cost_time = self.evaluate(new_network, using_zc_metric=self.using_zc_metric, metric=metric, iepoch=iepoch)
+            new_network.score = info[metric]
             self.total_time += cost_time
             self.total_epoch += self.iepoch
             self.trend_time.append(self.total_time)
@@ -102,7 +108,9 @@ def run_warm_up(n_sample, k, problem, metric):
             if problem.search_space.is_valid(genotype):
                 network = Network()
                 network.genotype = genotype
-                time = problem.evaluate(network, using_zc_metric=True, metric=metric)
+                info, time = problem.evaluate(network, using_zc_metric=True, metric=metric)
+                network.score = info[metric]
+
                 total_times += time
                 list_network.append(network)
                 list_scores.append(network.score)
