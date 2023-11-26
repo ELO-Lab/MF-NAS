@@ -30,74 +30,100 @@ class IteratedLocalSearch(Algorithm):
         best_network = self.search(max_eval=max_eval, max_time=max_time, metric=metric, **kwargs)
         return best_network, self.total_time, self.total_epoch
 
-    def search(self, **kwargs):
+    def search(self, **kwargs):  # ils
         max_eval = kwargs['max_eval']
         max_time = kwargs['max_time']
         metric = kwargs['metric']
 
         # Initialize starting solution
-        init_network = sampling_solution(problem=self.problem)
-
-        cost_time = self.evaluate(init_network, using_zc_metric=self.using_zc_metric, metric=metric)
+        init_sol = sampling_solution(problem=self.problem)
+        cost_time = self.evaluate(init_sol, using_zc_metric=self.using_zc_metric, metric=metric)
         self.total_time += cost_time
         self.total_epoch += self.iepoch
 
-        cur_network, best_network = deepcopy(init_network), deepcopy(init_network)
-        update_log(best_network=best_network, cur_network=cur_network, algorithm=self)
+        update_log(best_network=init_sol, cur_network=init_sol, algorithm=self)
+
+        lo = self.local_search(init_sol, metric)
+        best_lo = deepcopy(lo)
 
         while (self.n_eval < max_eval) and (self.total_time < max_time):
-            improved = False
+            s = deepcopy(best_lo)
+            s = self.escape_operator(s)
+            cost_time = self.evaluate(s, using_zc_metric=self.using_zc_metric, metric=metric)
+            self.total_time += cost_time
+            self.total_epoch += self.iepoch
+            if s.score > self.trend_best_network[-1].score:
+                update_log(best_network=s, cur_network=s, algorithm=self)
+            else:
+                update_log(best_network=self.trend_best_network[-1], cur_network=s, algorithm=self)
 
-            # Get all neighbors within the distance k = 1
-            list_ids = get_indices(cur_network.genotype, 1)
-            while len(list_ids) != 0:
-                i = np.random.choice(range(len(list_ids)))
-                selected_ids = list_ids[i]
-                list_ids.remove(list_ids[i])
+            lo = self.local_search(s, metric)
 
-                list_neighbors = get_neighbors(cur_network=cur_network, ids=selected_ids, problem=self.problem)
+            if lo.score > best_lo.score:
+                best_lo = deepcopy(lo)
 
-                ## For each neighbor, evaluate and compare to the current solution
-                for neighbor_network in list_neighbors:
-                    cost_time = self.evaluate(neighbor_network, using_zc_metric=self.using_zc_metric, metric=metric)
-                    self.total_time += cost_time
-                    self.total_epoch += self.iepoch
+        return best_lo
 
-                    ## Update the best solution so far
-                    if neighbor_network.score > best_network.score:
-                        best_network = deepcopy(neighbor_network)
-                    update_log(best_network=best_network, cur_network=neighbor_network, algorithm=self)
+    def local_search(self, init_sol, metric):
+        improved, sol = self.neighbor_explorer(init_sol, metric)
+        while improved:
+            improved, sol = self.neighbor_explorer(sol, metric)
+        return sol
 
-                    ## Update the current solution
-                    if neighbor_network.score >= cur_network.score:
-                        cur_network = deepcopy(neighbor_network)
-                        improved = True
+    def neighbor_explorer(self, sol, metric):
+        improved = False
+        best_sol = deepcopy(sol)
 
-                        if self.first_improvement:
-                            break
-                if self.first_improvement and improved:
+        # Get all neighbors within the distance k = 1
+        list_ids = get_indices(sol.genotype, 1)
+        all_neighbors = []
+        while len(list_ids) != 0:
+            i = np.random.choice(range(len(list_ids)))
+            selected_ids = list_ids[i]
+            list_ids.remove(list_ids[i])
+
+            list_neighbors = get_neighbors(cur_network=sol, ids=selected_ids, problem=self.problem)
+            all_neighbors += list_neighbors
+        np.random.shuffle(all_neighbors)
+
+        # For each neighbor, evaluate and compare to the current solution
+        for new_sol in all_neighbors:
+            cost_time = self.evaluate(new_sol, using_zc_metric=self.using_zc_metric, metric=metric)
+            self.total_time += cost_time
+            self.total_epoch += self.iepoch
+
+            if new_sol.score > self.trend_best_network[-1].score:
+                update_log(best_network=new_sol, cur_network=new_sol, algorithm=self)
+            else:
+                update_log(best_network=self.trend_best_network[-1], cur_network=new_sol, algorithm=self)
+
+            if new_sol.score > sol.score:
+                improved = True
+                if new_sol.score > best_sol.score:
+                    best_sol = deepcopy(new_sol)
+                if self.first_improvement:
                     break
+        if improved:
+            return improved, best_sol
+        else:
+            return improved, sol
 
-            # If the current solution cannot be improved, the algorithm is stuck.
-            # Therefore, we perform the escape operator.
-            if not improved:
-                ## Get all neighbors within the distance k = 2 (Escape Operator)
-                list_ids = get_indices(cur_network.genotype, 2)
-                i = np.random.choice(range(len(list_ids)))
-                selected_ids = list_ids[i]
+    def escape_operator(self, sol):
+        # Get all neighbors within the distance k = 2
+        list_ids = get_indices(sol.genotype, 2)
+        all_neighbors = []
+        while len(list_ids) != 0:
+            i = np.random.choice(range(len(list_ids)))
+            selected_ids = list_ids[i]
+            list_ids.remove(list_ids[i])
 
-                list_neighbors = get_neighbors(cur_network=cur_network, ids=selected_ids, problem=self.problem)
-                cur_network = deepcopy(list_neighbors[0])
+            list_neighbors = get_neighbors(cur_network=sol, ids=selected_ids, problem=self.problem)
+            all_neighbors += list_neighbors
+        np.random.shuffle(all_neighbors)
 
-                cost_time = self.evaluate(cur_network, using_zc_metric=self.using_zc_metric, metric=metric)
-                self.total_time += cost_time
-                self.total_epoch += self.iepoch
-
-                if cur_network.score > best_network.score:
-                    best_network = deepcopy(cur_network)
-                update_log(best_network=best_network, cur_network=cur_network, algorithm=self)
-
-        return best_network
+        # Choose a random neighbor
+        new_sol = deepcopy(all_neighbors[0])
+        return new_sol
 
 def get_indices(genotype, distance):
     return list(itertools.combinations(range(len(genotype)), distance))
