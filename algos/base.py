@@ -34,20 +34,9 @@ class Algorithm(ABC):
     def run(self, seed, **kwargs):
         set_seed(seed)
         self.reset()
-        network, search_cost, total_epoch = self._run(**kwargs)
+        best_network, search_cost, total_epoch = self._run(**kwargs)
 
-        solution = [''.join(list(map(str, network.genotype))) for network in self.trend_best_network]
-        search_F = [network.score for network in self.trend_best_network]
-        test_F = [self.problem.get_test_performance(network) for network in self.trend_best_network]
-
-        self.search_log = {
-            'solution': solution,
-            'search_F': search_F,
-            'test_F': test_F
-        }
-
-
-        return network, search_cost, total_epoch
+        return best_network, search_cost, total_epoch
 
     @abstractmethod
     def _run(self, **kwargs):
