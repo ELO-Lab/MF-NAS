@@ -63,15 +63,13 @@ MF-NAS:
 
 LOMONAS:
     using_zc_metrics: [False, True]
-    weighted: [-1, 1]
-    metrics: [val_acc, flops]
+    metrics: [val_error, flops]
     iepochs: [12, 0]
     k: 3
 
 NSGA2:
     using_zc_metrics: [False, True]
-    weighted: [-1, 1]
-    metrics: [val_acc, flops]
+    metrics: [val_error, flops]
     iepochs: [12, 0]
     pop_size: 20
     prob_mutation: 1.0

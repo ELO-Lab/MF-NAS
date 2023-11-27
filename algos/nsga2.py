@@ -29,7 +29,6 @@ class NSGA2(Algorithm):
         self.metrics = []
         self.iepochs = []
         self.using_zc_metrics = []
-        self.weighted = []
         self.pop = []
         self.n_gen = 0
 
@@ -41,7 +40,7 @@ class NSGA2(Algorithm):
         for i in range(len(metrics)):
             info, cost_time = self.problem.evaluate(network, using_zc_metric=using_zc_metrics[i],
                                                     metric=metrics[i], iepoch=iepochs[i])
-            score = info[metrics[i]] * self.weighted[i]
+            score = info[metrics[i]]
             total_cost_time += cost_time
             scores.append(score)
         self.n_eval += 1

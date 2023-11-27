@@ -62,8 +62,10 @@ class NB_201(Problem):
         info = self.benchmark_database['200'][h]
         all_infos = {
             'train_acc': info['train_acc'][iepoch - 1],
+            'train_error': 1 - info['train_acc'][iepoch - 1],
             'train_loss': info['train_loss'][iepoch - 1],
             'val_acc': info['val_acc'][iepoch - 1],
+            'val_error': 1 - info['val_acc'][iepoch - 1],
             'val_loss': info['val_loss'][iepoch - 1],
         }
         train_time = info['train_time'] * dif_epoch

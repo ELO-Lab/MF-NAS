@@ -50,7 +50,9 @@ class NB_101(Problem):
         info = self.benchmark_database[f'{iepoch}'][h]
         all_infos = {
             'train_acc': info['train_acc'],
+            'train_error': 1 - info['train_acc'],
             'val_acc': info['val_acc'],
+            'val_error': 1 - info['val_acc'],
         }
         train_time = info['train_time'] - network.info['train_time'][-1]
         network.info['cur_iepoch'].append(iepoch)

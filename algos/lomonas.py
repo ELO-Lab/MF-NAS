@@ -22,7 +22,6 @@ class LOMONAS(Algorithm):
         self.metrics = []
         self.iepochs = []
         self.using_zc_metrics = []
-        self.weighted = []
 
     def evaluate(self, network, using_zc_metrics, metrics, iepochs):
         scores = []
@@ -30,7 +29,7 @@ class LOMONAS(Algorithm):
         for i in range(len(metrics)):
             info, cost_time = self.problem.evaluate(network, using_zc_metric=using_zc_metrics[i],
                                                     metric=metrics[i], iepoch=iepochs[i])
-            score = info[metrics[i]] * self.weighted[i]
+            score = info[metrics[i]]
             total_cost_time += cost_time
             scores.append(score)
         self.n_eval += 1
