@@ -3,7 +3,7 @@ from copy import deepcopy
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 
 from models import Network
-from utils import ElitistArchive, check_valid
+from utils import ElitistArchive, check_not_exist
 from . import Algorithm
 
 class LOMONAS(Algorithm):
@@ -172,7 +172,7 @@ class LOMONAS(Algorithm):
             for _genotype in _neighbor_genotype:
                 if self.problem.search_space.is_valid(_genotype):
                     _ID = ''.join(list(map(str, _genotype)))
-                    if check_valid(_ID, S_ID=S_ID, neighbors_ID=neighbor_ID):
+                    if check_not_exist(_ID, S_ID=S_ID, neighbors_ID=neighbor_ID):
                         neighbor_genotype.append(_genotype)
                         neighbor_ID.append(_ID)
         return neighbor_genotype, neighbor_ID, _footprint

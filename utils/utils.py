@@ -35,7 +35,7 @@ def fx_better_fy(fx, fy):
         return 1
     return 0  # True - False
 
-def check_valid(hash_key, **kwargs):
+def check_not_exist(hash_key, **kwargs):
     """
     - Check if the current solution already exists on the set of checklists.
     """

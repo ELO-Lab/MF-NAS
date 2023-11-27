@@ -3,7 +3,7 @@ Modified from: https://github.com/msu-coinlab/pymoo
 """
 import numpy as np
 
-from utils import ElitistArchive
+from utils import ElitistArchive, check_not_exist
 from .utils import sampling_solution
 
 from . import Algorithm
@@ -102,7 +102,7 @@ class NSGA2(Algorithm):
                                prob_crossover=self.prob_crossover, crossover_method=self.crossover_method,
                                problem=self.problem)
         # Mutate
-        offsprings = mutation(pool=offsprings, prob_mutation=self.prob_mutation, problem=self.problem)
+        offsprings = mutation(pool=offsprings, pop=self.pop, prob_mutation=self.prob_mutation, problem=self.problem)
 
         # Evaluate
         for network in offsprings:
@@ -121,33 +121,42 @@ class NSGA2(Algorithm):
         self.pop = self.survival.do(pool, self.pop_size)
 
 
-def mutation(pool, prob_mutation, problem):
+def mutation(pool, pop, prob_mutation, problem):
     op_mutation_prob = prob_mutation / len(pool[0].genotype)
-
+    n_mutation, max_mutation = 0, len(pool) * 100
+    pop_ID = [sol.get('ID') for sol in pop]
     mutated_pool = []
-    for network in pool:
-        n_mutation, max_mutation = 0, 100
-        new_network = Network()
-        new_network.genotype = network.genotype.copy()
-        while n_mutation <= max_mutation:
-            n_mutation += 1
+    n = 0
+    while True:
+        for network in pool:
+            new_network = Network()
             new_genotype = network.genotype.copy()
-            for i in range(len(new_genotype)):
-                if np.random.random() < op_mutation_prob:
-                    available_ops = problem.search_space.return_available_ops(i).copy()
-                    _available_ops = [o for o in available_ops if o != new_genotype[i]]
-                    new_genotype[i] = np.random.choice(_available_ops)
+
+            for m, prob in enumerate(np.random.rand(len(pool[0].genotype))):
+                if prob <= op_mutation_prob:
+                    available_ops = problem.search_space.return_available_ops(m).copy()
+                    _available_ops = [o for o in available_ops if o != new_genotype[m]]
+                    new_genotype[m] = np.random.choice(_available_ops)
             if problem.search_space.is_valid(new_genotype):
-                new_network.genotype = new_genotype
-                new_network.set('ID', ''.join(list(map(str, new_genotype))))
-                break
-        mutated_pool.append(new_network)
-    return mutated_pool
+                new_ID = ''.join(list(map(str, new_genotype)))
+
+                if check_not_exist(new_ID, pop_ID=pop_ID) or (n_mutation - max_mutation > 0):
+                    new_network.set(['genotype', 'ID'], [new_genotype, new_ID])
+                    mutated_pool.append(new_network)
+                    n += 1
+                    if n - len(pop) == 0:
+                        return mutated_pool
+        n_mutation += 1
 
 def crossover(parents, n_offspring, prob_crossover, crossover_method, problem):
     parents = np.array(parents)
     offsprings = []
-    while len(offsprings) < n_offspring:
+    offsprings_ID = []
+
+    n = 0
+    n_crossover, max_crossover = 0, n_offspring * 5
+
+    while True:
         I = np.random.choice(n_offspring, size=(n_offspring // 2, 2), replace=False)
         parent_pairs = parents[I]
         for pair in parent_pairs:
@@ -155,16 +164,28 @@ def crossover(parents, n_offspring, prob_crossover, crossover_method, problem):
                 offspring_genotypes = _crossover(pair[0], pair[1], crossover_method)
                 for genotype in offspring_genotypes:
                     if problem.search_space.is_valid(genotype):
-                        offspring_net = Network()
-                        offspring_net.genotype = genotype
-                        offspring_net.set('ID', ''.join(list(map(str, genotype))))
-                        offsprings.append(offspring_net)
+                        ID = ''.join(list(map(str, genotype)))
+                        if check_not_exist(ID, offsprings_ID=offsprings_ID) or (n_crossover - max_crossover > 0):
+                            offspring_net = Network()
+                            offspring_net.genotype = genotype
+                            offspring_net.set('ID', ID)
+
+                            offsprings.append(offspring_net)
+                            offsprings_ID.append(ID)
+                            n += 1
+                            if n - n_offspring >= 0:
+                                return offsprings[:n_offspring]
 
             else:
                 offspring_net1, offspring_net2 = deepcopy(pair[0]), deepcopy(pair[1])
                 offsprings.append(offspring_net1)
                 offsprings.append(offspring_net2)
-    return offsprings[:n_offspring]
+                offsprings_ID.append(''.join(list(map(str, offspring_net1.genotype))))
+                offsprings_ID.append(''.join(list(map(str, offspring_net2.genotype))))
+                n += 2
+                if n - n_offspring >= 0:
+                    return offsprings[:n_offspring]
+        n_crossover += 1
 
 def _crossover(parent_1, parent_2, crossover_method):
     genotype_1, genotype_2 = parent_1.genotype.copy(), parent_2.genotype.copy()
