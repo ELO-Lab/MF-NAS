@@ -32,7 +32,7 @@ class NB_ASR(Problem):
         h = self.get_h(genotype=network.genotype)
         info = self.benchmark_database[h]
         all_info = {
-            'val_per': info['val_per'][iepoch - 1]
+            'val_per': -info['val_per'][iepoch - 1]  # for maximization
         }
         train_time = 0
         network.info['cur_iepoch'].append(iepoch)
