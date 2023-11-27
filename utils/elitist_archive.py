@@ -14,7 +14,7 @@ class ElitistArchive:
             ranks = np.zeros(len(self.fitness), dtype=np.int8)
             status = True
             for j, fy in enumerate(self.fitness):
-                better_sol = x_better_y(x=fx, y=fy)
+                better_sol = fx_better_fy(fx=fx, fy=fy)
                 if better_sol == 0:
                     ranks[j] += 1
                 elif better_sol == 1:

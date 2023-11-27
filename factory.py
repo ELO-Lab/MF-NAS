@@ -31,6 +31,7 @@ def get_algorithm(name):
     with open('configs/algo.yaml', 'r') as file:
         all_configs = yaml.safe_load(file)
     configs = all_configs[name]
+    multi_objective = False
     if name == 'FLS':
         algo = IteratedLocalSearch(first_improvement=True)
     elif name == 'BLS':
@@ -45,6 +46,9 @@ def get_algorithm(name):
         algo = SuccessiveHalving()
     elif name == 'MF-NAS':
         algo = MF_NAS()
+    elif name == 'LOMONAS':
+        algo = LOMONAS()
+        multi_objective = True
     else:
         raise ValueError(f'Not support this algorithm: {name}')
     print(f'- Algorithm: {name}')
@@ -52,4 +56,4 @@ def get_algorithm(name):
 
     print('Algorithm:')
     print_info(configs)
-    return algo, configs
+    return algo, configs, multi_objective

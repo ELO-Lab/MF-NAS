@@ -8,7 +8,7 @@ from factory import get_problem, get_algorithm
 import json
 import pickle as p
 import os
-
+from utils import so_evaluation_phase, mo_evaluation_phase
 
 def run(kwargs):
     search_space = kwargs.ss
@@ -18,7 +18,7 @@ def run(kwargs):
     problem, info_problem = get_problem(search_space)
 
     opt_name = kwargs.optimizer
-    opt, info_algo = get_algorithm(opt_name)
+    opt, info_algo, multi_objective = get_algorithm(opt_name)
     opt.adapt(problem)
 
     n_run = kwargs.n_run
@@ -40,10 +40,16 @@ def run(kwargs):
     best_score = []
     all_evaluation_cost = []
     for run_id in tqdm(range(1, n_run + 1)):
-        best_network, search_cost, total_epoch = opt.run(seed=run_id)
-        best_score.append(best_network.score)
+        search_result, search_cost, total_epoch = opt.run(seed=run_id)
 
-        test_performance, evaluation_cost = problem.get_test_performance(best_network)
+        if multi_objective:
+            best_network_1, test_performance_1, evaluation_cost_1, best_network_2, test_performance_2, evaluation_cost_2, test_performances = mo_evaluation_phase(search_result, problem)
+            best_network = best_network_2
+            test_performance = test_performance_2
+            evaluation_cost = evaluation_cost_2
+        else:
+            best_network, test_performance, evaluation_cost = so_evaluation_phase(search_result, problem)
+        best_score.append(best_network.score)
         all_evaluation_cost.append(evaluation_cost)
 
         if verbose:
@@ -85,7 +91,7 @@ if __name__ == '__main__':
 
     ''' ALGORITHM '''
     parser.add_argument('--optimizer', type=str, default='MF-NAS', help='the search strategy',
-                        choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'GA', 'REA+W', 'MF-NAS'])
+                        choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'GA', 'REA+W', 'MF-NAS', 'LOMONAS'])
 
     ''' ENVIRONMENT '''
     parser.add_argument('--n_run', type=int, default=31, help='number of experiment runs')
