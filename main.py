@@ -8,7 +8,7 @@ from factory import get_problem, get_algorithm
 import json
 import pickle as p
 import os
-from utils import so_evaluation_phase, mo_evaluation_phase
+from utils import so_evaluation_phase, mo_evaluation_phase, print_info
 
 def run(kwargs):
     search_space = kwargs.ss
@@ -23,7 +23,6 @@ def run(kwargs):
 
     n_run = kwargs.n_run
     verbose = kwargs.verbose
-    trend_performance, trend_search_cost, trend_total_epoch = [], [], []
 
     dt_string = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
     root = './exp' if kwargs.path_res is None else kwargs.path_res
@@ -37,49 +36,82 @@ def run(kwargs):
     json.dump(info_problem, open(path_res + '/configs/info_problem.json', 'w'), indent=4)
     json.dump(info_algo, open(path_res + '/configs/info_algo.json', 'w'), indent=4)
 
+    evaluation_cost_each_run = []
+    test_performance_each_run = []
+    search_cost_each_run, total_epoch_each_run = [], []
+
+    ### Delete late
     best_score = []
-    all_evaluation_cost = []
+    test_performance_each_run1, evaluation_cost_each_run1 = [], []
+    test_performance_each_run2, evaluation_cost_each_run2 = [], []
+
     for run_id in tqdm(range(1, n_run + 1)):
         search_result, search_cost, total_epoch = opt.run(seed=run_id)
-
         if multi_objective:
             best_network_1, test_performance_1, evaluation_cost_1, best_network_2, test_performance_2, evaluation_cost_2, test_performances = mo_evaluation_phase(search_result, problem)
-            best_network = best_network_2
-            test_performance = test_performance_2
-            evaluation_cost = evaluation_cost_2
+
+            best_score.append(best_network_1.score[0] * opt.weighted[0])
+
+            test_performance_each_run1.append(test_performance_1)
+            test_performance_each_run2.append(test_performance_2)
+
+            evaluation_cost_each_run1.append(evaluation_cost_1)
+            evaluation_cost_each_run2.append(evaluation_cost_2)
+            list_genotypes = [problem.search_space.decode(network.genotype) for network in search_result]
+            info_results = {
+                'Genotype (1)': best_network_1.genotype,
+                'Phenotype (1)': problem.search_space.decode(best_network_1.genotype),
+                'Performance (1)': test_performance_1,
+                'Evaluation cost (1) (in seconds)': evaluation_cost_1,
+                'Genotype (2)': best_network_2.genotype,
+                'Phenotype (2)': problem.search_space.decode(best_network_2.genotype),
+                'Performance (2)': test_performance_2,
+                'Evaluation cost (2) (in seconds)': evaluation_cost_2,
+                'All networks': list_genotypes,
+                'Test performance (all)': test_performances,
+                'Search cost (in seconds)': search_cost,
+                'Search cost (in epochs)': total_epoch,
+            }
         else:
             best_network, test_performance, evaluation_cost = so_evaluation_phase(search_result, problem)
-        best_score.append(best_network.score)
-        all_evaluation_cost.append(evaluation_cost)
+            best_score.append(best_network.score)
+            evaluation_cost_each_run.append(evaluation_cost)
+            test_performance_each_run.append(test_performance)
+            info_results = {
+                'Genotype': best_network.genotype,
+                'Phenotype': problem.search_space.decode(best_network.genotype),
+                'Performance': test_performance,
+                'Search cost (in seconds)': search_cost,
+                'Search cost (in epochs)': total_epoch,
+                'Evaluation cost (in seconds)': evaluation_cost,
+            }
 
         if verbose:
-            network_phenotype = problem.search_space.decode(best_network.genotype)
             print()
             print(f'RunID: {run_id}\n')
-            logging.info(f'Best architecture found:\n{network_phenotype}\n')
-            logging.info(f'Performance: {test_performance} %')
-            logging.info(f'Search cost (in seconds): {search_cost}')
-            logging.info(f'Search cost (in epochs): {total_epoch}\n')
-            logging.info(f'Evaluation cost (in seconds): {evaluation_cost}\n')
+            print_info(info_results)
             print('-' * 100)
-        trend_performance.append(test_performance)
-        trend_search_cost.append(search_cost)
-        trend_total_epoch.append(total_epoch)
-        info_results = {
-            'Genotype': best_network.genotype,
-            'Phenotype': problem.search_space.decode(best_network.genotype),
-            'Performance': test_performance,
-            'Search cost (in seconds)': search_cost,
-            'Search cost (in epochs)': total_epoch,
-            'Evaluation cost (in seconds)': evaluation_cost,
-        }
+
+        search_cost_each_run.append(search_cost)
+        total_epoch_each_run.append(total_epoch)
+
         p.dump(info_results, open(path_res + f'/results/run_{run_id}_results.p', 'wb'))
         p.dump(opt.search_log, open(path_res + f'/results/log_{run_id}.p', 'wb'))
-    logging.info(f'Mean (search metric): {np.round(np.mean(best_score), 4)} \t Std (search metric): {np.round(np.std(best_score), 4)}')
-    logging.info(f'Mean: {np.round(np.mean(trend_performance), 2)} \t Std: {np.round(np.std(trend_performance), 2)}')
-    logging.info(f'Search cost (in seconds): {np.round(np.mean(trend_search_cost))}')
-    logging.info(f'Search cost (in epochs): {np.round(np.mean(trend_total_epoch))}')
-    logging.info(f'Evaluation cost (in seconds): {np.round(np.mean(all_evaluation_cost))}')
+    logging.info(
+        f'Mean (search): {np.round(np.mean(best_score), 4)} \t Std (search): {np.round(np.std(best_score), 4)}')
+    if multi_objective:
+        logging.info(f'Mean (1): {np.round(np.mean(test_performance_each_run1), 2)} \t Std: {np.round(np.std(test_performance_each_run1), 2)}')
+        logging.info(f'Mean (2): {np.round(np.mean(test_performance_each_run2), 2)} \t Std: {np.round(np.std(test_performance_each_run2), 2)}')
+    else:
+        logging.info(f'Mean: {np.round(np.mean(test_performance_each_run), 2)} \t Std: {np.round(np.std(test_performance_each_run), 2)}')
+    logging.info(f'Search cost: {np.round(np.mean(search_cost_each_run))} seconds')
+    logging.info(f'Search cost: {np.round(np.mean(total_epoch_each_run))} epochs')
+
+    if multi_objective:
+        logging.info(f'Evaluation cost (1): {np.round(np.mean(evaluation_cost_each_run1))} seconds')
+        logging.info(f'Evaluation cost (2): {np.round(np.mean(evaluation_cost_each_run2))} seconds')
+    else:
+        logging.info(f'Evaluation cost: {np.round(np.mean(evaluation_cost_each_run))}  seconds')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -23,6 +23,7 @@ class LOMONAS(Algorithm):
         self.metrics = []
         self.iepochs = []
         self.using_zc_metrics = []
+        self.weighted = []
 
     def evaluate(self, network, using_zc_metrics, metrics, iepochs):
         scores = []
@@ -30,15 +31,14 @@ class LOMONAS(Algorithm):
         for i in range(len(metrics)):
             info, cost_time = self.problem.evaluate(network, using_zc_metric=using_zc_metrics[i],
                                                     metric=metrics[i], iepoch=iepochs[i])
-            score = info[metrics[i]]
-            if 'acc' in metrics[i]:
-                score *= -1
+            score = info[metrics[i]] * self.weighted[i]
             total_cost_time += cost_time
             scores.append(score)
         self.n_eval += 1
         return scores, total_cost_time
 
     def _reset(self):
+        self.archive = ElitistArchive()
         self.search_log = []
 
     def _run(self, **kwargs):
@@ -79,7 +79,6 @@ class LOMONAS(Algorithm):
                 N_genotype, N_ID, footprint = self.get_neighbors(Q_genotype=Q_genotype,
                                                                 footprint=footprint, S_ID=S_ID)  # line 9
                 N_fitness = []
-
                 if len(N_genotype) == 0:  # line 10
                     # lines 11 - 15
                     for fid in range(2, self.k + 1):
@@ -130,7 +129,7 @@ class LOMONAS(Algorithm):
                     network.set('score', scores)
 
                     self.total_time += cost_time
-                    self.total_epoch += self.iepoch
+                    self.total_epoch += max(self.iepochs)
 
                     N_fitness.append(network.get('score'))
                     self.archive.update(network, algorithm=self)
@@ -318,7 +317,7 @@ def get_partial_neighbors(genotype, footprint, problem):
     OPS = problem.search_space.return_available_ops(i).copy()
     neighbor_genotype = []
     for op in OPS:
-        _genotype = genotype.copy()
+        _genotype = np.array(genotype.copy())
         _genotype[i] = op
         neighbor_genotype.append(_genotype)
     return neighbor_genotype, footprint

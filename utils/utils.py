@@ -13,7 +13,12 @@ def set_seed(seed):
 
 def print_info(data):
     for key, value in data.items():
-        print(f'- {key}: {value}')
+        if isinstance(value, list) or isinstance(value, np.ndarray):
+            print(f'- {key}:')
+            for v in value:
+                print(f'\t{v}')
+        else:
+            print(f'- {key}: {value}')
     print()
 
 def fx_better_fy(fx, fy):
@@ -57,5 +62,5 @@ def mo_evaluation_phase(search_result, problem):
     evaluation_cost_1 = list_evaluation_cost[np.argmin(scores[:, 0])]
 
     best_network_2 = list_best_network[np.argmax(list_test_performance)]
-    test_performance_2 = list_test_performance[np.argmax(scores)]
+    test_performance_2 = list_test_performance[np.argmax(list_test_performance)]
     return best_network_1, test_performance_1, evaluation_cost_1, best_network_2, test_performance_2, sum(list_evaluation_cost), list_test_performance
