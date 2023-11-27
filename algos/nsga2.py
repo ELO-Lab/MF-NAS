@@ -8,6 +8,7 @@ from .utils import sampling_solution
 
 from . import Algorithm
 from models import Network
+from copy import deepcopy
 
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 from pymoo.util.randomized_argsort import randomized_argsort
@@ -65,8 +66,7 @@ class NSGA2(Algorithm):
 
         self.initialize()
         self.pop = self.survival.do(self.pop, self.pop_size)
-
-        while (self.n_eval < max_eval) or (self.total_time < max_time):
+        while (self.n_eval < max_eval) and (self.total_time < max_time):
             self.n_gen += 1
             self.next()
 
@@ -81,6 +81,7 @@ class NSGA2(Algorithm):
     def initialize(self):
         for _ in range(self.pop_size):
             network = sampling_solution(problem=self.problem)
+            network.set('ID', ''.join(list(map(str, network.genotype))))
 
             scores, cost_time = self.evaluate(network, using_zc_metrics=self.using_zc_metrics,
                                               metrics=self.metrics, iepochs=self.iepochs)
@@ -138,6 +139,7 @@ def mutation(pool, prob_mutation, problem):
                     new_genotype[i] = np.random.choice(_available_ops)
             if problem.search_space.is_valid(new_genotype):
                 new_network.genotype = new_genotype
+                new_network.set('ID', ''.join(list(map(str, new_genotype))))
                 break
         mutated_pool.append(new_network)
     return mutated_pool
@@ -155,12 +157,11 @@ def crossover(parents, n_offspring, prob_crossover, crossover_method, problem):
                     if problem.search_space.is_valid(genotype):
                         offspring_net = Network()
                         offspring_net.genotype = genotype
+                        offspring_net.set('ID', ''.join(list(map(str, genotype))))
                         offsprings.append(offspring_net)
 
             else:
-                offspring_net1, offspring_net2 = Network(), Network()
-                offspring_net1.genotype = pair[0].genotype.copy()
-                offspring_net2.genotype = pair[1].genotype.copy()
+                offspring_net1, offspring_net2 = deepcopy(pair[0]), deepcopy(pair[1])
                 offsprings.append(offspring_net1)
                 offsprings.append(offspring_net2)
     return offsprings[:n_offspring]
@@ -221,7 +222,7 @@ class RankAndCrowdingSurvival:
     @staticmethod
     def do(pop, n_survive):
         # get the objective space values and objects
-        F = np.array([sol.get('scores') for sol in pop])
+        F = np.array([sol.get('score') for sol in pop])
 
         # the final indices of surviving individuals
         survivors = []
@@ -250,7 +251,7 @@ class RankAndCrowdingSurvival:
 
             # extend the survivors by all or selected individuals
             survivors.extend(front[I])
-        return pop[survivors]
+        return np.array(pop)[survivors].tolist()
 
 
 def calculating_crowding_distance(F):

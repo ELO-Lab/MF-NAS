@@ -38,9 +38,9 @@ def get_algorithm(name):
         algo = IteratedLocalSearch(first_improvement=False)
     elif name == 'RS':
         algo = RandomSearch()
-    elif 'REA' in name:
+    elif name in ['REA', 'REA+W']:
         algo = REA()
-    elif 'GA' in name:
+    elif name in ['GA', 'GA+W']:
         algo = GA()
     elif name == 'SH':
         algo = SuccessiveHalving()
