@@ -14,7 +14,6 @@ class LOMONAS(Algorithm):
     def __init__(self):
         super().__init__()
 
-        # Default: f0 -> performance metric; f1 -> efficiency metric
         self.k = 3
 
         self.archive = ElitistArchive()
@@ -46,8 +45,8 @@ class LOMONAS(Algorithm):
         max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
         max_time = self.problem.max_time if self.max_time is None else self.max_time
 
-        best_network = self.search(max_eval=max_eval, max_time=max_time, metric=self.metric, iepoch=self.iepoch, **kwargs)
-        return best_network, self.total_time, self.total_epoch
+        approximation_set = self.search(max_eval=max_eval, max_time=max_time, metric=self.metric, iepoch=self.iepoch, **kwargs)
+        return approximation_set, self.total_time, self.total_epoch
 
     def search(self, **kwargs):
         max_eval, max_time = kwargs['max_eval'], kwargs['max_time']
@@ -99,7 +98,8 @@ class LOMONAS(Algorithm):
 
                             for _genotype in _N_genotype:
                                 if self.problem.search_space.is_valid(_genotype):
-                                    _ID = ''.join(list(map(str, _genotype)))
+                                    # _ID = ''.join(list(map(str, _genotype)))
+                                    _ID = self.problem.get_h(_genotype)
                                     if _ID not in footprint:
                                         N_genotype.append(_genotype)
                             if len(N_genotype) != 0:
@@ -293,14 +293,17 @@ def sample(footprint, problem):
     network = Network()
     while True:
         genotype = problem.search_space.sample(genotype=True)
-        ID = ''.join(list(map(str, genotype)))
-        if problem.search_space.is_valid(genotype) and ID not in footprint:
-            network.set('genotype', genotype)
-            network.set('ID', ID)
-        return network
+        # ID = ''.join(list(map(str, genotype)))
+        if problem.search_space.is_valid(genotype):
+            ID = problem.get_h(genotype)
+            if ID not in footprint:
+                network.set('genotype', genotype)
+                network.set('ID', ID)
+                return network
 
 def get_partial_neighbors(genotype, footprint, problem):
-    ID = ''.join(list(map(str, genotype)))
+    # ID = ''.join(list(map(str, genotype)))
+    ID = problem.get_h(genotype)
 
     if ID in footprint:
         if len(footprint[ID]) == 0:

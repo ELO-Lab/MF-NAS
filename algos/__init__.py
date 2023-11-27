@@ -6,3 +6,4 @@ from .mf_nas import MF_NAS
 from .ga import GA
 from .rea import REA
 from .lomonas import LOMONAS
+from .nsga2 import NSGA2

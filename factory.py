@@ -49,6 +49,9 @@ def get_algorithm(name):
     elif name == 'LOMONAS':
         algo = LOMONAS()
         multi_objective = True
+    elif name == 'NSGA2':
+        algo = NSGA2()
+        multi_objective = True
     else:
         raise ValueError(f'Not support this algorithm: {name}')
     print(f'- Algorithm: {name}')

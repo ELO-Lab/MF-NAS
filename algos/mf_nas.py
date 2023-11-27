@@ -40,7 +40,7 @@ class MF_NAS(Algorithm):
         optimizer_stage1.using_zc_metric = self.using_zc_metric_stage1
 
         _ = optimizer_stage1.search(max_time=9999999999, max_eval=self.max_eval_stage1,
-                                    metric=self.metric_stage1, **kwargs)
+                                    metric=self.metric_stage1, iepoch=0, **kwargs)
 
         self.total_time += optimizer_stage1.total_time
         self.total_epoch += optimizer_stage1.total_epoch

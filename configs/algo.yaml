@@ -67,3 +67,13 @@ LOMONAS:
     metrics: [val_acc, flops]
     iepochs: [12, 0]
     k: 3
+
+NSGA2:
+    using_zc_metrics: [False, True]
+    weighted: [-1, 1]
+    metrics: [val_acc, flops]
+    iepochs: [12, 0]
+    pop_size: 20
+    prob_mutation: 1.0
+    crossover_method: 2X
+    prob_crossover: 0.9

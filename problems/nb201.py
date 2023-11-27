@@ -81,3 +81,7 @@ class NB_201(Problem):
         if self.dataset == 'cifar10':
             train_time /= 2
         return score, train_time
+
+    @staticmethod
+    def get_h(genotype):
+        return ''.join(list(map(str, genotype)))

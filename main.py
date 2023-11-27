@@ -59,11 +59,9 @@ def run(kwargs):
             evaluation_cost_each_run2.append(evaluation_cost_2)
             list_genotypes = [problem.search_space.decode(network.genotype) for network in search_result]
             info_results = {
-                'Genotype (1)': best_network_1.genotype,
                 'Phenotype (1)': problem.search_space.decode(best_network_1.genotype),
                 'Performance (1)': test_performance_1,
                 'Evaluation cost (1) (in seconds)': evaluation_cost_1,
-                'Genotype (2)': best_network_2.genotype,
                 'Phenotype (2)': problem.search_space.decode(best_network_2.genotype),
                 'Performance (2)': test_performance_2,
                 'Evaluation cost (2) (in seconds)': evaluation_cost_2,
@@ -72,26 +70,29 @@ def run(kwargs):
                 'Search cost (in seconds)': search_cost,
                 'Search cost (in epochs)': total_epoch,
             }
+            if verbose:
+                print(f'RunID: {run_id}\n')
+                print_info(info_results)
+                print('-' * 100)
+            info_results['Genotype (1)'] = best_network_1.genotype
+            info_results['Genotype (2)'] = best_network_2.genotype
         else:
             best_network, test_performance, evaluation_cost = so_evaluation_phase(search_result, problem)
             best_score.append(best_network.score)
             evaluation_cost_each_run.append(evaluation_cost)
             test_performance_each_run.append(test_performance)
             info_results = {
-                'Genotype': best_network.genotype,
                 'Phenotype': problem.search_space.decode(best_network.genotype),
                 'Performance': test_performance,
                 'Search cost (in seconds)': search_cost,
                 'Search cost (in epochs)': total_epoch,
                 'Evaluation cost (in seconds)': evaluation_cost,
             }
-
-        if verbose:
-            print()
-            print(f'RunID: {run_id}\n')
-            print_info(info_results)
-            print('-' * 100)
-
+            if verbose:
+                print(f'RunID: {run_id}\n')
+                print_info(info_results)
+                print('-' * 100)
+            info_results['Genotype'] = best_network.genotype
         search_cost_each_run.append(search_cost)
         total_epoch_each_run.append(total_epoch)
 
@@ -104,14 +105,14 @@ def run(kwargs):
         logging.info(f'Mean (2): {np.round(np.mean(test_performance_each_run2), 2)} \t Std: {np.round(np.std(test_performance_each_run2), 2)}')
     else:
         logging.info(f'Mean: {np.round(np.mean(test_performance_each_run), 2)} \t Std: {np.round(np.std(test_performance_each_run), 2)}')
-    logging.info(f'Search cost: {np.round(np.mean(search_cost_each_run))} seconds')
-    logging.info(f'Search cost: {np.round(np.mean(total_epoch_each_run))} epochs')
+    logging.info(f'Search cost: {int(np.mean(search_cost_each_run))} seconds')
+    logging.info(f'Search cost: {int(np.mean(total_epoch_each_run))} epochs')
 
     if multi_objective:
-        logging.info(f'Evaluation cost (1): {np.round(np.mean(evaluation_cost_each_run1))} seconds')
-        logging.info(f'Evaluation cost (2): {np.round(np.mean(evaluation_cost_each_run2))} seconds')
+        logging.info(f'Evaluation cost (1): {int(np.mean(evaluation_cost_each_run1))} seconds')
+        logging.info(f'Evaluation cost (2): {int(np.mean(evaluation_cost_each_run2))} seconds')
     else:
-        logging.info(f'Evaluation cost: {np.round(np.mean(evaluation_cost_each_run))}  seconds')
+        logging.info(f'Evaluation cost: {int(np.mean(evaluation_cost_each_run))}  seconds')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -123,7 +124,7 @@ if __name__ == '__main__':
 
     ''' ALGORITHM '''
     parser.add_argument('--optimizer', type=str, default='MF-NAS', help='the search strategy',
-                        choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'GA', 'REA+W', 'MF-NAS', 'LOMONAS'])
+                        choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'GA', 'REA+W', 'MF-NAS', 'LOMONAS', 'NSGA2'])
 
     ''' ENVIRONMENT '''
     parser.add_argument('--n_run', type=int, default=31, help='number of experiment runs')
