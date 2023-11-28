@@ -50,7 +50,7 @@ def run(kwargs):
         if multi_objective:
             best_network_1, test_performance_1, evaluation_cost_1, best_network_2, test_performance_2, evaluation_cost_2, test_performances = mo_evaluation_phase(search_result, problem)
 
-            best_score.append(best_network_1.score[0] * opt.weighted[0])
+            best_score.append(best_network_1.score[0])
 
             test_performance_each_run1.append(test_performance_1)
             test_performance_each_run2.append(test_performance_2)
