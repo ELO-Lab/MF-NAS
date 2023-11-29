@@ -15,7 +15,7 @@ def run(kwargs):
     dataset = kwargs.dataset
     if '201' in search_space:
         search_space += f'_{dataset}'
-    problem, info_problem = get_problem(search_space)
+    problem, info_problem = get_problem(search_space, max_eval=kwargs.max_eval, max_time=kwargs.max_time)
 
     opt_name = kwargs.optimizer
     opt, info_algo, multi_objective = get_algorithm(opt_name)
@@ -121,6 +121,8 @@ if __name__ == '__main__':
     parser.add_argument('--ss', type=str, default='nb201', help='the search space', choices=['nb201', 'nb101', 'nbasr'])
     parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'cifar100', 'ImageNet16-120'],
                         help='dataset for NAS-Bench-201')
+    parser.add_argument('--max_eval', type=int, default=None, help='maximum number of evaluations')
+    parser.add_argument('--max_time', type=int, default=None, help='maximum times (in seconds)')
 
     ''' ALGORITHM '''
     parser.add_argument('--optimizer', type=str, default='MF-NAS', help='the search strategy',

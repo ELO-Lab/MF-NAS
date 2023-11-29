@@ -3,11 +3,13 @@ from algos import *
 from problems import *
 from utils import print_info
 
-def get_problem(name):
+def get_problem(name, **kwargs):
     with open('configs/problem.yaml', 'r') as file:
         all_configs = yaml.safe_load(file)
     configs = all_configs[name]
-    max_eval, max_time, dataset = configs['max_eval'], configs['max_time'], configs['dataset']
+    max_eval = configs['max_eval'] if kwargs['max_eval'] is None else kwargs['max_eval']
+    max_time = configs['max_time'] if kwargs['max_time'] is None else kwargs['max_time']
+    dataset = configs['dataset']
     info_problem = {
         'Problem': name,
         'Search space': name.split("_")[0].upper(),

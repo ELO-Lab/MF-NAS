@@ -38,7 +38,7 @@ class Algorithm(ABC):
 
         # solution = [''.join(list(map(str, x.genotype))) for x in self.trend_best_network]
         # search_F = [x.score for x in self.trend_best_network]
-        # test_F = [self.problem.get_test_performance(x) for x in self.trend_best_network]
+        # test_F = [self.problem.get_test_performance(x)[0] for x in self.trend_best_network]
         #
         # self.search_log = {
         #     'solution': solution,

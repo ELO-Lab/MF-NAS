@@ -33,6 +33,34 @@ class LOMONAS(Algorithm):
             total_cost_time += cost_time
             scores.append(score)
         self.n_eval += 1
+        #
+        # if self.n_eval == 1:
+        #     search_F = np.round((1 - scores[0]) * 100, 2)
+        #     test_F = self.problem.get_test_performance(network)[0]
+        #     self.search_log.append([''.join(list(map(str, network.genotype))), search_F, test_F, ''.join(list(map(str, network.genotype))), test_F])
+        # else:
+        #     all_network = []
+        #     for i, _genotype in enumerate(self.archive.genotype):
+        #         _network = Network()
+        #         _network.set('genotype', _genotype)
+        #         all_network.append(_network)
+        #     all_network = np.array(all_network)
+        #
+        #     all_search_F = np.array(self.archive.fitness)[:, 0]
+        #     i = np.argmin(all_search_F)
+        #     X = all_network[i]
+        #     search_F = np.round((1 - all_search_F[i]) * 100, 2)
+        #     test_F = self.problem.get_test_performance(X)[0]
+        #
+        #     all_test_F = []
+        #     for _network in all_network:
+        #         _test_F = self.problem.get_test_performance(_network)[0]
+        #         all_test_F.append(_test_F)
+        #     all_test_F = np.array(all_test_F)
+        #     X_test = all_network[np.argmax(all_test_F)]
+        #     test_trueF = max(all_test_F)
+        #     self.search_log.append([''.join(list(map(str, X.genotype))), search_F, test_F, ''.join(list(map(str, X_test.genotype))), test_trueF])
+
         return scores, total_cost_time
 
     def _reset(self):
