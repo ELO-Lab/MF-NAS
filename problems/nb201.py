@@ -8,8 +8,9 @@ import os
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__)).split('/')
 ROOT_DIR = '/'.join(ROOT_DIR[:-1])
 
-list_supported_zc_metrics = ['synflow']
-list_supported_training_based_metrics = ['train_acc', 'val_acc', 'train_loss', 'val_loss']
+list_supported_zc_metrics = ['synflow', 'jacov', 'epe_nas', 'fisher', 'grad_norm', 'grasp', 'l2_norm', 'nwot',
+                             'params', 'flops', 'plain', 'snip', 'zen']
+list_supported_training_based_metrics = ['train_acc', 'val_acc', 'train_loss', 'val_loss', 'val_error', 'train_error']
 
 OP_NAMES_NB201 = ['skip_connect', 'none', 'nor_conv_3x3', 'nor_conv_1x1', 'avg_pool_3x3']
 EDGE_LIST = ((1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4))
