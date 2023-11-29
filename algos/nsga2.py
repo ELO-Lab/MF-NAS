@@ -34,6 +34,12 @@ class NSGA2(Algorithm):
 
         self.survival = RankAndCrowdingSurvival()
 
+        self.best_search_arch = None
+        self.best_test_arch = None
+        self.fitness_search_arch = None
+        self.fitness_test_arch = None
+        self.fitness_test_arch1 = None
+
     def evaluate(self, network, using_zc_metrics, metrics, iepochs):
         scores = []
         total_cost_time = 0.0
@@ -44,6 +50,29 @@ class NSGA2(Algorithm):
             total_cost_time += cost_time
             scores.append(score)
         self.n_eval += 1
+
+        # if self.n_eval == 1:
+        #     search_F = np.round((1 - scores[0]) * 100, 2)
+        #     test_F = self.problem.get_test_performance(network)[0]
+        #     self.best_search_arch = network.genotype.copy()
+        #     self.best_test_arch = network.genotype.copy()
+        #     self.fitness_search_arch = search_F
+        #     self.fitness_test_arch = test_F
+        #     self.fitness_test_arch1 = test_F
+        # else:
+        #     search_F = np.round((1 - scores[0]) * 100, 2)
+        #     test_F = self.problem.get_test_performance(network)[0]
+        #     if search_F > self.fitness_search_arch:
+        #         self.best_search_arch = network.genotype.copy()
+        #         self.fitness_search_arch = search_F
+        #         self.fitness_test_arch = test_F
+        #     if test_F > self.fitness_test_arch1:
+        #         self.best_test_arch = network.genotype.copy()
+        #         self.fitness_test_arch1 = test_F
+        # self.search_log.append(
+        #     [''.join(list(map(str, self.best_search_arch))), self.fitness_search_arch, self.fitness_test_arch, ''.join(list(map(str, self.best_test_arch))),
+        #      self.fitness_test_arch1])
+
         return scores, total_cost_time
 
     def _reset(self):
@@ -51,6 +80,12 @@ class NSGA2(Algorithm):
         self.search_log = []
         self.pop = []
         self.n_gen = 0
+
+        self.best_search_arch = None
+        self.best_test_arch = None
+        self.fitness_search_arch = None
+        self.fitness_test_arch = None
+        self.fitness_test_arch1 = None
 
     def _run(self, **kwargs):
         self._reset()
@@ -122,30 +157,22 @@ class NSGA2(Algorithm):
 
 def mutation(pool, pop, prob_mutation, problem):
     op_mutation_prob = prob_mutation / len(pool[0].genotype)
-    n_mutation, max_mutation = 0, len(pool) * 100
     pop_ID = [sol.get('ID') for sol in pop]
-    mutated_pool = []
-    n = 0
-    while True:
-        for network in pool:
-            new_network = Network()
+    for network in pool:
+        while True:
             new_genotype = network.genotype.copy()
-
             for m, prob in enumerate(np.random.rand(len(pool[0].genotype))):
                 if prob <= op_mutation_prob:
                     available_ops = problem.search_space.return_available_ops(m).copy()
-                    _available_ops = [o for o in available_ops if o != new_genotype[m]]
-                    new_genotype[m] = np.random.choice(_available_ops)
+                    available_ops.remove(new_genotype[m])
+                    new_genotype[m] = np.random.choice(available_ops)
             if problem.search_space.is_valid(new_genotype):
                 new_ID = ''.join(list(map(str, new_genotype)))
-
-                if check_not_exist(new_ID, pop_ID=pop_ID) or (n_mutation - max_mutation > 0):
-                    new_network.set(['genotype', 'ID'], [new_genotype, new_ID])
-                    mutated_pool.append(new_network)
-                    n += 1
-                    if n - len(pop) == 0:
-                        return mutated_pool
-        n_mutation += 1
+                if check_not_exist(new_ID, pop_ID=pop_ID):
+                    network.set(['genotype', 'ID'], [new_genotype, new_ID])
+                    pop_ID.append(new_ID)
+                    break
+    return pool
 
 def crossover(parents, n_offspring, prob_crossover, crossover_method, problem):
     parents = np.array(parents)
