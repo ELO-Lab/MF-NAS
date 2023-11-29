@@ -51,28 +51,6 @@ class NSGA2(Algorithm):
             scores.append(score)
         self.n_eval += 1
 
-        # if self.n_eval == 1:
-        #     search_F = np.round((1 - scores[0]) * 100, 2)
-        #     test_F = self.problem.get_test_performance(network)[0]
-        #     self.best_search_arch = network.genotype.copy()
-        #     self.best_test_arch = network.genotype.copy()
-        #     self.fitness_search_arch = search_F
-        #     self.fitness_test_arch = test_F
-        #     self.fitness_test_arch1 = test_F
-        # else:
-        #     search_F = np.round((1 - scores[0]) * 100, 2)
-        #     test_F = self.problem.get_test_performance(network)[0]
-        #     if search_F > self.fitness_search_arch:
-        #         self.best_search_arch = network.genotype.copy()
-        #         self.fitness_search_arch = search_F
-        #         self.fitness_test_arch = test_F
-        #     if test_F > self.fitness_test_arch1:
-        #         self.best_test_arch = network.genotype.copy()
-        #         self.fitness_test_arch1 = test_F
-        # self.search_log.append(
-        #     [''.join(list(map(str, self.best_search_arch))), self.fitness_search_arch, self.fitness_test_arch, ''.join(list(map(str, self.best_test_arch))),
-        #      self.fitness_test_arch1])
-
         return scores, total_cost_time
 
     def _reset(self):
