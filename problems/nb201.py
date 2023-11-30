@@ -74,6 +74,13 @@ class NB_201(Problem):
             train_time /= 2
         network.info['cur_iepoch'].append(iepoch)
         network.info['train_time'].append(train_time)
+
+        if iepoch not in network.info['train_info']:
+            network.info['train_info'][iepoch] = all_infos
+        else:
+            for info, value in all_infos.items():
+                if info not in network.info['train_info'][iepoch]:
+                    network.info['train_info'][iepoch][info] = value
         return all_infos, train_time
 
     def get_test_performance(self, network, **kwargs):

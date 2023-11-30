@@ -44,6 +44,8 @@ def get_algorithm(name):
         algo = REA()
     elif name in ['GA', 'GA+W']:
         algo = GA()
+    elif name == 'MF-GA':
+        algo = MFGA()
     elif name == 'SH':
         algo = SuccessiveHalving()
     elif name == 'MF-NAS':

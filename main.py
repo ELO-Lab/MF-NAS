@@ -97,7 +97,7 @@ def run(kwargs):
         total_epoch_each_run.append(total_epoch)
 
         p.dump(info_results, open(path_res + f'/results/run_{run_id}_results.p', 'wb'))
-        p.dump(opt.search_log, open(path_res + f'/results/log_{run_id}.p', 'wb'))
+        # p.dump(opt.search_log, open(path_res + f'/results/log_{run_id}.p', 'wb'))
     logging.info(
         f'Mean (search): {np.round(np.mean(best_score), 4)} \t Std (search): {np.round(np.std(best_score), 4)}')
     if multi_objective:
@@ -126,7 +126,7 @@ if __name__ == '__main__':
 
     ''' ALGORITHM '''
     parser.add_argument('--optimizer', type=str, default='MF-NAS', help='the search strategy',
-                        choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'GA', 'REA+W', 'MF-NAS', 'LOMONAS', 'NSGA2'])
+                        choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'GA', 'REA+W', 'MF-NAS', 'MF-GA', 'LOMONAS', 'NSGA2'])
 
     ''' ENVIRONMENT '''
     parser.add_argument('--n_run', type=int, default=31, help='number of experiment runs')

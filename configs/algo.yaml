@@ -31,6 +31,17 @@ GA:
     crossover_method: 2X
     prob_crossover: 0.9
 
+MF-GA:
+    using_zc_metric: False
+    metric: val_acc
+    pop_size: 20
+    tournament_size: 4
+    prob_mutation: 1.0
+    crossover_method: 2X
+    prob_crossover: 0.9
+    init_epoch: 4
+    step: 4
+
 REA+W:
     using_zc_metric: False
     metric: val_acc

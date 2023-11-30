@@ -7,6 +7,7 @@ class Network:
         self.info = {
             'cur_iepoch': [0],
             'train_time': [0.0],
+            'train_info': {},
         }
 
     def set(self, key, value):
