@@ -73,9 +73,9 @@ Here are our best results (performance & search cost) for each search space:
 
 | Algorithm                 | NB-101            | NB-201<br/>(cifar10) | NB-201<br/>(cifar100) | NB-201<br/>(ImageNet16-120) | NAS-Bench-ASR     |            
 |:--------------------------|:-:|:-:|:-:|:-:|:-:|
-|MF-NAS (_synflow_)          | $93.82 \pm 0.56$<br/>$12,960$ seconds<br/>($368$ epochs)|$94.36 \pm 0.05$<br/>$20,000$ seconds<br/>($668$ epochs)| $73.51 \pm 0.00$<br/>$40,000$ seconds<br/>($1,192$ epochs) | $46.34 \pm 0.00$<br/>$120,000$ seconds<br/>($1,192$ epochs) | $21.77 \pm 0.00$<br/>$300$ epochs |
-|MF-NAS (_params_)          | $93.89 \pm 0.25$<br/>$14,088$ seconds<br/>($368$ epochs)  |$94.36 \pm 0.00$<br/>$20,000$ seconds<br/>($617$ epochs)| $73.51 \pm 0.00$<br/>$40,000$ seconds<br/>($1,192$ epochs) | $46.34 \pm 0.00$<br/>$120,000$ seconds<br/>($1,192$ epochs) | $21.81 \pm 0.26$<br/>$300$ epochs |
-|MF-NAS (_FLOPS_)          | $93.88 \pm 0.25$<br/>$14,055$ seconds<br/>($368$ epochs)  |$94.36 \pm 0.00$<br/>$20,000$ seconds<br/>($617$ epochs)| $73.51 \pm 0.00$<br/>$40,000$ seconds<br/>($1,192$ epochs) | $46.34 \pm 0.00$<br/>$120,000$ seconds<br/>($1,192$ epochs)| $21.78 \pm 0.36$<br/>$300$ epochs |
+|MF-NAS (_synflow_)          | $93.82 \pm 0.56$<br/>$12,960$ seconds<br/>($368$ epochs)|$94.36 \pm 0.05$<br/>$20,000$ seconds<br/>($1,192$ epochs)| $73.51 \pm 0.00$<br/>$40,000$ seconds<br/>($1,192$ epochs) | $46.34 \pm 0.00$<br/>$120,000$ seconds<br/>($1,192$ epochs) | $21.77 \pm 0.00$<br/>$300$ epochs |
+|MF-NAS (_params_)          | $93.89 \pm 0.25$<br/>$14,088$ seconds<br/>($368$ epochs)  |$94.36 \pm 0.00$<br/>$20,000$ seconds<br/>($1,192$ epochs)| $73.51 \pm 0.00$<br/>$40,000$ seconds<br/>($1,192$ epochs) | $46.34 \pm 0.00$<br/>$120,000$ seconds<br/>($1,192$ epochs) | $21.81 \pm 0.26$<br/>$300$ epochs |
+|MF-NAS (_FLOPS_)          | $93.88 \pm 0.25$<br/>$14,055$ seconds<br/>($368$ epochs)  |$94.36 \pm 0.00$<br/>$20,000$ seconds<br/>($1,192$ epochs)| $73.51 \pm 0.00$<br/>$40,000$ seconds<br/>($1,192$ epochs) | $46.34 \pm 0.00$<br/>$120,000$ seconds<br/>($1,192$ epochs)| $21.78 \pm 0.36$<br/>$300$ epochs |
 |Optimal (_benchmark_)          | $94.31$  | $94.37$ | $73.51$  | $47.31$ | $21.40$ |
 
 ## Acknowledgement
