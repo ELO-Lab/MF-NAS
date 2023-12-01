@@ -47,7 +47,7 @@ class SuccessiveHalving(Algorithm):
                 info, cost_time = self.evaluate(network, using_zc_metric=self.using_zc_metric, metric=self.metric, iepoch=iepoch)
                 network.score = info[self.metric]
 
-                diff_epoch = network.info['cur_iepoch'][-1] - last_iepoch
+                diff_epoch = network.info['cur_iepoch'][-1] - network.info['cur_iepoch'][-2]
                 self.total_time += cost_time
                 self.total_epoch += diff_epoch
 
@@ -70,7 +70,6 @@ class SuccessiveHalving(Algorithm):
                 return best_network
 
             checkpoint += 1
-            last_iepoch = iepoch
             iepoch = self.list_iepoch[checkpoint]
             if iepoch == self.list_iepoch[-1]:
                 last = True

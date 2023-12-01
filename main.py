@@ -112,7 +112,7 @@ def run(kwargs):
         logging.info(f'Evaluation cost (1): {int(np.mean(evaluation_cost_each_run1))} seconds')
         logging.info(f'Evaluation cost (2): {int(np.mean(evaluation_cost_each_run2))} seconds')
     else:
-        logging.info(f'Evaluation cost: {int(np.mean(evaluation_cost_each_run))}  seconds')
+        logging.info(f'Evaluation cost: {int(np.mean(evaluation_cost_each_run))} seconds')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
