@@ -8,6 +8,6 @@ do
 done
 for metric in "${zc_metrics[@]}"
 do
-    python scripts/change_config_file.py --algo MF-NAS --config_file "$CONFIG_PATH" --zc_metric "$metric"
+    python scripts/change_config_file.py --algo MF-NAS --config_file "$CONFIG_PATH" --key metric_stage1 --value "$metric"
     python main.py --ss nb101 --optimizer MF-NAS --config_file "$CONFIG_PATH"
 done
