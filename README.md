@@ -3,6 +3,8 @@
 
 Quan Minh Phan, Ngoc Hoang Luong
 
+In **GECCO 2024**.
+
 ## Setup
 - Clone this repo
 - Install necessary packages and databases.
