@@ -9,7 +9,6 @@ def get_problem(name):
     configs = all_configs[name]
     max_eval, max_time, dataset = configs['max_eval'], configs['max_time'], configs['dataset']
     info_problem = {
-        'Problem': name,
         'Search space': name.split("_")[0].upper(),
         'Dataset': dataset.upper(),
         'Maximum budget (seconds)': max_time,
@@ -27,9 +26,10 @@ def get_problem(name):
     else:
         raise ValueError(f'Not support this problem: {name}.')
 
-def get_algorithm(name):
-    with open('configs/algo.yaml', 'r') as file:
-        all_configs = yaml.safe_load(file)
+def get_algorithm(name, config_file):
+    f = open(config_file, 'r')
+    all_configs = yaml.safe_load(f)
+
     configs = all_configs[name]
     if name == 'FLS':
         algo = IteratedLocalSearch(first_improvement=True)
@@ -45,9 +45,7 @@ def get_algorithm(name):
         algo = MF_NAS()
     else:
         raise ValueError(f'Not support this algorithm: {name}')
-    print(f'- Algorithm: {name}')
+    print(f'Algorithm: {name}')
     algo.set(configs)
-
-    print('Algorithm:')
     print_info(configs)
     return algo, configs

@@ -86,11 +86,14 @@ class IteratedLocalSearch(Algorithm):
             # Therefore, we perform the escape operator.
             if not improved:
                 ## Get all neighbors within the distance k = 2 (Escape Operator)
-                list_ids = get_indices(cur_network.genotype, 2)
-                i = np.random.choice(range(len(list_ids)))
-                selected_ids = list_ids[i]
+                while True:
+                    list_ids = get_indices(cur_network.genotype, 2)
+                    i = np.random.choice(range(len(list_ids)))
+                    selected_ids = list_ids[i]
 
-                list_neighbors = get_neighbors(cur_network=cur_network, ids=selected_ids, problem=self.problem)
+                    list_neighbors = get_neighbors(cur_network=cur_network, ids=selected_ids, problem=self.problem)
+                    if len(list_neighbors) != 0:
+                        break
                 cur_network = deepcopy(list_neighbors[0])
 
                 time = self.problem.evaluate(cur_network, using_zc_metric=self.using_zc_metric, metric=metric)

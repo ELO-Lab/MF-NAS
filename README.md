@@ -21,30 +21,35 @@ This repo have already implemented following NAS algorithms:
 - [**REA + Warmup (REA+W)**](https://openreview.net/pdf?id=0cmMMy8J5q) 
 - **MF-NAS** (**Ours**)
 
-Our experiments are conducted on **NAS-Bench-101**, **NAS-Bench-201**, and **NAS-Bench-ASR** search spaces. 
-The configurations of algorithms and problems are set in [`configs/algo.yaml`](configs/algo.yaml) and [`configs/problem.yaml`](configs/problem.yaml), respectively.
+Our experiments are conducted on **NAS-Bench-101**, **NAS-Bench-201**, and **NAS-Bench-ASR** search spaces.
 
-To reproduce all results in our paper, follow the below table to set the correct hyperparameters:
-| Algorithm                   | Hyperparameters            |            
-|:--------------------------|:----------------------|
-| RS / FLS / BLS          | <ul><li>**using_zc_metric**: _False_</li><li>**metric**: _val_acc_ (for **NB-101**, **NB-201**) / _val_per_ (for **NB-ASR**)</li><li>**iepoch**: $12$</li> |
-| SH         | <ul><li>**using_zc_metric**: _False_</li><li>**metric**: _val_acc_ (for **NB-101**, **NB-201**) / _val_per_ (for **NB-ASR**)</li><li>**list_iepoch**: <ul><li>$[4, 12, 36, 108]$ (for **NB-101**)</li><li>$[12, 25, 50, 100, 200]$ (for **NB-201**)</li><li>$[10, 20, 30, 40]$ (for **NB-ASR**)</li></ul><li>**n_candidate**: $16$ (for **NB-101, NB-ASR**) / $32$ (for **NB-201**)</li>|
-| REA / REA+W          | <ul><li>**using_zc_metric**: _False_</li><li>**metric**: _val_acc_ (for **NB-101**, **NB-201**) / _val_per_ (for **NB-ASR**)</li><li>**iepoch**: $12$</li><li>**pop_size**: $10$</li><li>**tournament_size**: $10$</li><li>**prob_mutation**: $1.0$</li><li>**warm_up**: _True_ (for **REA+W**)</li><li>**n_sample_warmup**: $2000$ (for **REA+W**)</li><li>**metric_warmup**: _synflow_ (for **REA+W**)</li>|
-| MF-NAS         | <ul><li>**metric_stage1**: _params_</li><li>**optimizer_stage1**: **FLS** / **BLS** (default: **FLS**)</li><li>**using_zc_metric_stage1**: _True_</li><li>**max_eval_stage1**: $2000$</li><li>**using_zc_metric_stage2**: _False_</li><li>**metric_stage2**: _val_acc_ (for **NB-101**, **NB-201**) / _val_per_ (for **NB-ASR**)</li><li>**list_iepoch**: <ul><li>$[4, 12, 36, 108]$ (for **NB-101**)</li><li>$[12, 25, 50, 100, 200]$ (for **NB-201**)</li><li>$[10, 20, 30, 40]$ (for **NB-ASR**)</li></ul><li>**k**: $16$ (for **NB-101, NB-ASR**) / $32$ (for **NB-201**)</li>|
+The configurations of algorithms are set in [`configs/algo_101.yaml`](configs/algo_101.yaml), [`configs/algo_201.yaml`](configs/algo_201.yaml), and [`configs/algo_asr.yaml`](configs/algo_asr.yaml).
+The configurations of problems are set in [`configs/problem.yaml`](configs/problem.yaml).
 
-and run the below script:
+To reproduce all main results in our paper, run the below scripts:
 ```shell
-$ python main.py --ss <search-space> --optimizer <search-strategy> --n_run <number-of-runs> 500
+$ python /script/run_101.sh
+$ python /script/run_201.sh
+$ python /script/run_asr.sh
 ```
-| Args                   | Choices            |            
-|:--------------------------|:----------------------|
-| _ss_          | **nb101**, **nb201**, **nbasr** |
-| _optimizer_         | **RS**, **FLS**, **BLS**, **SH**, **REA**, **REA+W**, **MF-NAS**|
 
-Note that you can use our implemented algorithms and search with other metrics. However, the `using_zc_metric` and `metric` hyperparameters need to be set so that they do not conflict with each other.
+To reproduce the ablation studies, run the below scripts:
+#### To experiment on NAS-Bench-201 with different zero-cost metrics
+```shell
+$ python /script/run_201_with_different_zc_metrics.sh
+```
+#### To compare the impact of Random Search and Local Search on the performance of MF-NAS
+```shell
+$ python /script/compare_RS_and_LS.sh
+```
+#### To replace `val_acc` with `train_loss` in MF-NAS
+```shell
+$ python /script/replace_val_acc_with_train_loss.sh
+```
+Note that you can search with other metrics. However, the `using_zc_metric` and `metric` hyperparameters must be set so that they do not conflict with each other.
 
-For example, if you use the **synflow** or **jacov** metrics, you need to set `using_zc_metric` to `True`.
-If you use **val_acc** as the search objective, you must set `using_zc_metric` to `False`.
+For example, if you use the **synflow**/**jacov** metrics as the search objective, you need to set `using_zc_metric` to `True`.
+If you use **val_acc**/**train_loss** as the search objective, you must set `using_zc_metric` to `False`.
 
 The table of performance metrics that are currently available for all networks in each search space.
 | Metric                   | Type | NAS-Bench-101            |  NAS-Bench-201                         | NAS-Bench-ASR                          |            
@@ -75,9 +80,9 @@ Here are our best results (performance & search cost) for each search space:
 
 | Algorithm                 | NB-101            | NB-201<br/>(cifar10) | NB-201<br/>(cifar100) | NB-201<br/>(ImageNet16-120) | NAS-Bench-ASR     |            
 |:--------------------------|:-:|:-:|:-:|:-:|:-:|
-|MF-NAS (_synflow_)          | $93.82 \pm 0.56$<br/>$12,960$ seconds<br/>($368$ epochs)|$94.36 \pm 0.05$<br/>$20,000$ seconds<br/>($668$ epochs)| $73.51 \pm 0.00$<br/>$40,000$ seconds<br/>($1,192$ epochs) | $46.34 \pm 0.00$<br/>$120,000$ seconds<br/>($1,192$ epochs) | $21.77 \pm 0.00$<br/>$300$ epochs |
-|MF-NAS (_params_)          | $93.89 \pm 0.25$<br/>$14,088$ seconds<br/>($368$ epochs)  |$94.36 \pm 0.00$<br/>$20,000$ seconds<br/>($617$ epochs)| $73.51 \pm 0.00$<br/>$40,000$ seconds<br/>($1,192$ epochs) | $46.34 \pm 0.00$<br/>$120,000$ seconds<br/>($1,192$ epochs) | $21.81 \pm 0.26$<br/>$300$ epochs |
-|MF-NAS (_FLOPS_)          | $93.88 \pm 0.25$<br/>$14,055$ seconds<br/>($368$ epochs)  |$94.36 \pm 0.00$<br/>$20,000$ seconds<br/>($617$ epochs)| $73.51 \pm 0.00$<br/>$40,000$ seconds<br/>($1,192$ epochs) | $46.34 \pm 0.00$<br/>$120,000$ seconds<br/>($1,192$ epochs)| $21.78 \pm 0.36$<br/>$300$ epochs |
+|MF-NAS (_synflow_)          | $93.82 \pm 0.56$<br/>$12,960$ seconds<br/>($368$ epochs)|$94.36 \pm 0.05$<br/>$20,000$ seconds<br/>($1,192$ epochs)| $73.51 \pm 0.00$<br/>$40,000$ seconds<br/>($1,192$ epochs) | $46.34 \pm 0.00$<br/>$120,000$ seconds<br/>($1,192$ epochs) | $21.77 \pm 0.00$<br/>$300$ epochs |
+|MF-NAS (_params_)          | $93.89 \pm 0.25$<br/>$14,088$ seconds<br/>($368$ epochs)  |$94.36 \pm 0.00$<br/>$20,000$ seconds<br/>($1,192$ epochs)| $73.51 \pm 0.00$<br/>$40,000$ seconds<br/>($1,192$ epochs) | $46.34 \pm 0.00$<br/>$120,000$ seconds<br/>($1,192$ epochs) | $21.81 \pm 0.26$<br/>$300$ epochs |
+|MF-NAS (_FLOPS_)          | $93.88 \pm 0.25$<br/>$14,055$ seconds<br/>($368$ epochs)  |$94.36 \pm 0.00$<br/>$20,000$ seconds<br/>($1,192$ epochs)| $73.51 \pm 0.00$<br/>$40,000$ seconds<br/>($1,192$ epochs) | $46.34 \pm 0.00$<br/>$120,000$ seconds<br/>($1,192$ epochs)| $21.78 \pm 0.36$<br/>$300$ epochs |
 |Optimal (_benchmark_)          | $94.31$  | $94.37$ | $73.51$  | $47.31$ | $21.40$ |
 
 ## Acknowledgement

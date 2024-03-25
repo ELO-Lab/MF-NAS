@@ -18,7 +18,8 @@ def run(kwargs):
     problem, info_problem = get_problem(search_space)
 
     opt_name = kwargs.optimizer
-    opt, info_algo = get_algorithm(opt_name)
+    config_file = kwargs.config_file
+    opt, info_algo = get_algorithm(opt_name, config_file)
     opt.adapt(problem)
 
     n_run = kwargs.n_run
@@ -60,6 +61,7 @@ def run(kwargs):
     logging.info(f'Mean: {np.round(np.mean(trend_performance), 2)} \t Std: {np.round(np.std(trend_performance), 2)}')
     logging.info(f'Search cost (in seconds): {np.round(np.mean(trend_search_cost))}')
     logging.info(f'Search cost (in epochs): {np.round(np.mean(trend_total_epoch))}')
+    print('=' * 100)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -73,9 +75,10 @@ if __name__ == '__main__':
     ''' ALGORITHM '''
     parser.add_argument('--optimizer', type=str, default='MF-NAS', help='the search strategy',
     choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'REA+W', 'MF-NAS'])
+    parser.add_argument('--config_file', type=str, default='./configs/algo_201.yaml', help='the configuration file')
 
     ''' ENVIRONMENT '''
-    parser.add_argument('--n_run', type=int, default=31, help='number of experiment runs')
+    parser.add_argument('--n_run', type=int, default=500, help='number of experiment runs')
     parser.add_argument('--verbose', action='store_true')
 
     args = parser.parse_args()

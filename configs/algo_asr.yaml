@@ -1,0 +1,52 @@
+FLS:
+    using_zc_metric: False
+    metric: val_per
+    iepoch: 12
+
+BLS:
+    using_zc_metric: False
+    metric: val_per
+    iepoch: 12
+
+RS:
+    using_zc_metric: False
+    metric: val_per
+    iepoch: 12
+
+REA:
+    using_zc_metric: False
+    metric: val_per
+    iepoch: 12
+    pop_size: 10
+    tournament_size: 10
+    prob_mutation: 1.0
+
+REA+W:
+    using_zc_metric: False
+    metric: val_per
+    iepoch: 12
+    pop_size: 10
+    tournament_size: 10
+    prob_mutation: 1.0
+    warm_up: True
+    n_sample_warmup: 2000
+    metric_warmup: synflow # choices: [jacov, plain, grasp, fisher, epe_nas, zen, grad_norm, snip, l2_norm, synflow, nwot, flops, params]
+
+SH:
+    using_zc_metric: False
+    metric: val_per
+    list_iepoch: [10, 20, 30, 40]
+    n_candidate: 16
+
+MF-NAS:
+    # stage 1
+    optimizer_stage1: FLS  # choices: [FLS, BLS]
+    using_zc_metric_stage1: True
+    metric_stage1: params  # choices: [params, FLOPs, synflow]
+    max_eval_stage1: 2000
+
+    # stage 2
+    using_zc_metric_stage2: False
+    metric_stage2: val_per
+    list_iepoch: [10, 20, 30, 40]
+    n_candidate: 16
