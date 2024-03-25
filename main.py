@@ -8,7 +8,11 @@ from factory import get_problem, get_algorithm
 import json
 import pickle as p
 import os
-from utils import so_evaluation_phase, mo_evaluation_phase, print_info
+from utils import so_evaluation_phase, mo_evaluation_phase, print_info, knee_extreme_selection, multi_fidelity_selection
+
+
+# import matplotlib.pyplot as plt
+
 
 def run(kwargs):
     search_space = kwargs.ss
@@ -45,11 +49,21 @@ def run(kwargs):
     test_performance_each_run1, evaluation_cost_each_run1 = [], []
     test_performance_each_run2, evaluation_cost_each_run2 = [], []
 
+    xx = []
+    yy = []
     for run_id in tqdm(range(1, n_run + 1)):
-        search_result, search_cost, total_epoch = opt.run(seed=run_id)
-        if multi_objective:
-            best_network_1, test_performance_1, evaluation_cost_1, best_network_2, test_performance_2, evaluation_cost_2, test_performances = mo_evaluation_phase(search_result, problem)
+        # search_result, search_cost, total_epoch = opt.run(seed=run_id)
+        # p.dump(search_result, open(f'/content/search_result_{run_id}.p', 'wb'))
 
+        search_cost, total_epoch = 0.0, 0.0
+        search_result = p.load(
+            open(f'/content/drive/MyDrive/QuanPM/STN-GECCO24/results/search_result_{run_id}.p', 'rb'))
+
+        our_test_acc, our_cost = [], []
+        if multi_objective:
+            best_network_1, test_performance_1, evaluation_cost_1, best_network_2, test_performance_2, evaluation_costs, test_performances = mo_evaluation_phase(
+                search_result, problem)
+            evaluation_cost_2 = sum(evaluation_costs)
             best_score.append(best_network_1.score[0])
 
             test_performance_each_run1.append(test_performance_1)
@@ -70,6 +84,28 @@ def run(kwargs):
                 'Search cost (in seconds)': search_cost,
                 'Search cost (in epochs)': total_epoch,
             }
+
+            scores = np.array([network.score for network in search_result])
+            scores[:, 0] = -np.log(-scores[:, 0])
+
+            # Knee-Extreme-Selection
+            # selection_res = knee_extreme_selection(scores, 180)
+            # for n, info in enumerate(selection_res):
+            #     our_test_acc.append(test_performances[info[0]])
+            #     our_cost.append(evaluation_costs[info[0]])
+            # xx.append(max(our_test_acc))
+            # yy.append(sum(our_cost))
+
+            # Successive Halving
+            I = np.flip(np.argsort(scores[:, 0]))
+            sort_search_result = np.array(search_result)[I].tolist()
+            list_candidates = sort_search_result[:16]
+            best_network, total_time, total_epoch = multi_fidelity_selection(list_candidates, problem, [4, 12, 36, 108])
+            our_test_acc, _ = problem.get_test_performance(best_network)
+            xx.append(our_test_acc)
+            yy.append(total_time)
+            # print(xx, yy)
+
             if verbose:
                 print(f'RunID: {run_id}\n')
                 print_info(info_results)
@@ -101,18 +137,24 @@ def run(kwargs):
     logging.info(
         f'Mean (search): {np.round(np.mean(best_score), 4)} \t Std (search): {np.round(np.std(best_score), 4)}')
     if multi_objective:
-        logging.info(f'Mean (1): {np.round(np.mean(test_performance_each_run1), 2)} \t Std: {np.round(np.std(test_performance_each_run1), 2)}')
-        logging.info(f'Mean (2): {np.round(np.mean(test_performance_each_run2), 2)} \t Std: {np.round(np.std(test_performance_each_run2), 2)}')
+        logging.info(
+            f'Mean (1): {np.round(np.mean(test_performance_each_run1), 2)} \t Std: {np.round(np.std(test_performance_each_run1), 2)}')
+        logging.info(
+            f'Mean (2): {np.round(np.mean(test_performance_each_run2), 2)} \t Std: {np.round(np.std(test_performance_each_run2), 2)}')
+        logging.info(f'Mean* (our): {np.round(np.mean(xx), 2)} \t Std: {np.round(np.std(xx), 2)}')
     else:
-        logging.info(f'Mean: {np.round(np.mean(test_performance_each_run), 2)} \t Std: {np.round(np.std(test_performance_each_run), 2)}')
+        logging.info(
+            f'Mean: {np.round(np.mean(test_performance_each_run), 2)} \t Std: {np.round(np.std(test_performance_each_run), 2)}')
     logging.info(f'Search cost: {int(np.mean(search_cost_each_run))} seconds')
     logging.info(f'Search cost: {int(np.mean(total_epoch_each_run))} epochs')
 
     if multi_objective:
         logging.info(f'Evaluation cost (1): {int(np.mean(evaluation_cost_each_run1))} seconds')
         logging.info(f'Evaluation cost (2): {int(np.mean(evaluation_cost_each_run2))} seconds')
+        logging.info(f'Evaluation cost (our): {int(np.mean(yy))} seconds')
     else:
         logging.info(f'Evaluation cost: {int(np.mean(evaluation_cost_each_run))} seconds')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

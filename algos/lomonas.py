@@ -33,9 +33,15 @@ class LOMONAS(Algorithm):
         scores = []
         total_cost_time = 0.0
         for i in range(len(metrics)):
+            if metrics[i][0] == '-':
+                metric = metrics[i][1:]
+                weight = -1
+            else:
+                metric = metrics[i]
+                weight = 1
             info, cost_time = self.problem.evaluate(network, using_zc_metric=using_zc_metrics[i],
-                                                    metric=metrics[i], iepoch=iepochs[i])
-            score = info[metrics[i]]
+                                                    metric=metric, iepoch=iepochs[i])
+            score = info[metric] * weight
             total_cost_time += cost_time
             scores.append(score)
         self.n_eval += 1

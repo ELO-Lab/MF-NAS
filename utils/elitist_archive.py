@@ -11,23 +11,25 @@ class ElitistArchive:
         algo = kwargs['algorithm']
 
         genotype = sol.get('genotype')
-        genotype_id = sol.get('ID')
+        # genotype_id = sol.get('ID')
+        genotype_id = algo.problem.get_h(genotype)
         fx = sol.get('score')
 
+        # Just for creating STN models
         search_F = np.round((1 - fx[0]) * 100, 2)
         test_F = algo.problem.get_test_performance(sol)[0]
 
         if genotype_id not in self.ID:
             ranks = np.zeros(len(self.fitness), dtype=np.int8)
-            status = True
+            update = True
             for j, fy in enumerate(self.fitness):
                 better_sol = fx_better_fy(fx=fx, fy=fy)
                 if better_sol == 0:
                     ranks[j] += 1
                 elif better_sol == 1:
-                    status = False
+                    update = False
                     break
-            if status:
+            if update:
                 self.genotype.append(genotype)
                 self.ID.append(genotype_id)
                 self.fitness.append(fx)

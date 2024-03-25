@@ -1,3 +1,6 @@
+"""
+    Credit: https://github.com/gabro8a/NPP-Landscapes
+"""
 from . import Algorithm
 from models import Network
 from copy import deepcopy
