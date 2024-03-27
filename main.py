@@ -11,13 +11,19 @@ import os
 
 
 def run(kwargs):
+    dt_string = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
+    opt_name = kwargs.optimizer
+
     search_space = kwargs.ss
     dataset = kwargs.dataset
     if '201' in search_space:
         search_space += f'_{dataset}'
-    problem, info_problem = get_problem(search_space)
+    res_path = f'./exp/{opt_name}_{search_space}_' + dt_string
+    os.mkdir(res_path)
+    os.mkdir(res_path + '/results')
 
-    opt_name = kwargs.optimizer
+    problem, info_problem = get_problem(search_space, res_path=res_path + '/results')
+
     config_file = kwargs.config_file
     opt, info_algo = get_algorithm(opt_name, config_file)
     opt.adapt(problem)
@@ -26,15 +32,10 @@ def run(kwargs):
     verbose = kwargs.verbose
     trend_performance, trend_search_cost, trend_total_epoch = [], [], []
 
-    dt_string = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
-    path_res = f'./exp/{opt_name}_{search_space}_' + dt_string
-    os.mkdir(path_res)
+    os.mkdir(res_path + '/configs')
+    json.dump(info_problem, open(res_path + '/configs/info_problem.json', 'w'), indent=4)
+    json.dump(info_algo, open(res_path + '/configs/info_algo.json', 'w'), indent=4)
 
-    os.mkdir(path_res + '/configs')
-    json.dump(info_problem, open(path_res + '/configs/info_problem.json', 'w'), indent=4)
-    json.dump(info_algo, open(path_res + '/configs/info_algo.json', 'w'), indent=4)
-
-    os.mkdir(path_res + '/results')
     for run_id in tqdm(range(1, n_run + 1)):
         network, search_cost, total_epoch = opt.run(seed=run_id)
         test_performance = problem.get_test_performance(network)
@@ -57,7 +58,7 @@ def run(kwargs):
             'Search cost (in seconds)': search_cost,
             'Search cost (in epochs)': total_epoch,
         }
-        p.dump(info_results, open(path_res + f'/results/run_{run_id}_results.p', 'wb'))
+        p.dump(info_results, open(res_path + f'/results/run_{run_id}_results.p', 'wb'))
     logging.info(f'Mean: {np.round(np.mean(trend_performance), 2)} \t Std: {np.round(np.std(trend_performance), 2)}')
     logging.info(f'Search cost (in seconds): {np.round(np.mean(trend_search_cost))}')
     logging.info(f'Search cost (in epochs): {np.round(np.mean(trend_total_epoch))}')
@@ -68,7 +69,7 @@ if __name__ == '__main__':
 
     ''' PROBLEM '''
     parser.add_argument('--ss', type=str, default='nb201', help='the search space',
-    choices=['nb201', 'nb101', 'nbasr'])
+    choices=['nb201', 'nb101', 'nbasr', 'darts'])
     parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'cifar100', 'ImageNet16-120'],
     help='dataset for NAS-Bench-201')
 

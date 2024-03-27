@@ -3,7 +3,7 @@ from algos import *
 from problems import *
 from utils import print_info
 
-def get_problem(name):
+def get_problem(name, **kwargs):
     with open('configs/problem.yaml', 'r') as file:
         all_configs = yaml.safe_load(file)
     configs = all_configs[name]
@@ -23,6 +23,8 @@ def get_problem(name):
         return NB_101(max_eval, max_time, dataset), info_problem
     elif name == 'nbasr':
         return NB_ASR(max_eval, max_time, dataset), info_problem
+    elif name == 'darts':
+        return DARTS(max_eval, max_time, dataset, save_path=kwargs['res_path']), info_problem
     else:
         raise ValueError(f'Not support this problem: {name}.')
 
