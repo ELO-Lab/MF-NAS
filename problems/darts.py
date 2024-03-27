@@ -84,6 +84,7 @@ class DARTS(Problem):
         # TODO: Re-write
         metric = kwargs['metric']
         iepoch = kwargs['iepoch']
+        network.model.to('cuda')
 
         optimizer = torch.optim.SGD(
             network.model.parameters(),
@@ -94,35 +95,40 @@ class DARTS(Problem):
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs)
 
         network_id = ''.join(list(map(str, network.genotype)))
-
+        print('- Network:', self.search_space.decode(network.genotype))
         if network.info['cur_iepoch'][-1] != 0:
-            checkpoint = torch.load(f'{self.save_path}/{network_id}.checkpoints.pth.tar')
-            optimizer.load_state_dict(checkpoint['optimizer'])
+            checkpoint = torch.load(f'{self.save_path}/{network_id}/epoch{network.info["cur_iepoch"][-1]}_checkpoints.pth.tar')
+            network.model.load_state_dict(checkpoint['model_state_dict'])
             scheduler.load_state_dict(checkpoint['scheduler'])
-            network.load_state_dict(checkpoint['model_state_dict'])
+            for state in optimizer.state.values():
+                for k, v in state.items():
+                    if isinstance(v, torch.Tensor):
+                        state[k] = v.to('cuda')
+            optimizer.load_state_dict(checkpoint['optimizer'])
+            print('  + Load weighted - Done!')
 
         score = -np.inf
         s = time.time()
         for epoch in range(network.info['cur_iepoch'][-1], iepoch+1):
-            scheduler.step()
-            print('epoch %d lr %e', epoch, scheduler.get_lr()[0])
             network.model.drop_path_prob = drop_path_prob * epoch / epochs
-
             train_acc, train_objs = _train(self.train_queue, network.model, criterion, optimizer)
-            print('train_acc %f', train_acc)
+
             valid_acc, valid_objs = infer(self.valid_queue, network.model, criterion)
             is_best = valid_acc > score
             if valid_acc > score:
                 score = valid_acc
-            print('valid_acc %f, best_acc %f', valid_acc, score)
 
+            print(f'  + Epoch: {epoch}  -  LR: {round(scheduler.get_last_lr()[0], 6)}  -  Train Acc: {round(train_acc, 2)}  -  Valid Acc: {round(valid_acc, 2)}  -  Best: {round(score, 2)}')
+            if not os.path.isdir(f'{self.save_path}/{network_id}'):
+                os.makedirs(f'{self.save_path}/{network_id}')
             save_checkpoint({
-                'epoch': epoch + 1,
+                'epoch': epoch,
                 'model_state_dict': network.model.state_dict(),
                 'best_acc': score,
                 'optimizer': optimizer.state_dict(),
                 'scheduler': scheduler.state_dict(),
-            }, is_best, filename=f'{self.save_path}/{network_id}_epoch{epoch}')
+            }, is_best, filename=f'{self.save_path}/{network_id}/epoch{epoch}')
+            scheduler.step()
         cost_time = time.time() - s
         if 'loss' in metric:
             score *= -1
@@ -158,7 +164,7 @@ def _train(train_queue, model, criterion, optimizer):
             loss += auxiliary_weight * loss_aux
 
         loss.backward()
-        nn.utils.clip_grad_norm(model.parameters(), grad_clip)
+        nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
         optimizer.step()
 
         prec1, prec5 = accuracy(logits, targets, topk=(1, 5))
@@ -166,9 +172,6 @@ def _train(train_queue, model, criterion, optimizer):
         objs.update(loss.item(), n)
         top1.update(prec1.item(), n)
         top5.update(prec5.item(), n)
-
-        if step % report_freq == 0:
-            print('train %03d %e %f %f', step, objs.avg, top1.avg, top5.avg)
 
     return top1.avg, objs.avg
 
@@ -179,27 +182,23 @@ def infer(valid_queue, model, criterion):
     model.eval()
 
     for step, (inputs, targets) in enumerate(valid_queue):
-        inputs = Variable(inputs, volatile=True).cuda()
-        targets = Variable(targets, volatile=True).cuda()
+        with torch.no_grad():
+            inputs = Variable(inputs).cuda()
+            targets = Variable(targets).cuda()
 
-        logits, _ = model(inputs)
-        loss = criterion(logits, targets)
+            logits, _ = model(inputs)
+            loss = criterion(logits, targets)
 
-        prec1, prec5 = accuracy(logits, targets, topk=(1, 5))
-        n = inputs.size(0)
-        objs.update(loss.item(), n)
-        top1.update(prec1.item(), n)
-        top5.update(prec5.item(), n)
-
-        if step % report_freq == 0:
-            print('valid %03d %e %f %f', step, objs.avg, top1.avg, top5.avg)
+            prec1, prec5 = accuracy(logits, targets, topk=(1, 5))
+            n = inputs.size(0)
+            objs.update(loss.item(), n)
+            top1.update(prec1.item(), n)
+            top5.update(prec5.item(), n)
 
     return top1.avg, objs.avg
 
 def save_checkpoint(state, is_best, filename):
-    if not os.path.isdir(filename):
-        os.makedirs(filename)
-
-    torch.save(state, filename)
+    torch.save(state, filename + '_checkpoints.pth.tar')
     if is_best:
-        shutil.copyfile(os.path.join(filename, 'checkpoints.pth.tar'), os.path.join(filename + '_best_model.pth.tar'))
+        _filename = '/'.join(filename.split('/')[:-1])
+        shutil.copyfile(filename + '_checkpoints.pth.tar', f'{_filename}/best_model.pth.tar')

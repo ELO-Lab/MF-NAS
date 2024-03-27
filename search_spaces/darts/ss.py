@@ -80,9 +80,9 @@ class SS_DARTS(SearchSpace):
                 return False
         return True
 
-    @staticmethod
-    def get_model(genotype):
-        return NetworkCIFAR(C=36, num_classes=10, layers=20, auxiliary=True, genotype=genotype)
+    def get_model(self, genotype):
+        phenotype = self.decode(genotype)
+        return NetworkCIFAR(C=36, num_classes=10, layers=20, auxiliary=True, genotype=phenotype)
 
     # ------------------------ Following functions are specific to DARTS search space ------------------------- #
     @staticmethod

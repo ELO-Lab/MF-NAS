@@ -1,10 +1,13 @@
 from search_spaces.darts.ops import *
 from torch.autograd import Variable
+import torch
+import torch.nn as nn
 
 def drop_path(x, drop_prob):
     if drop_prob > 0.:
         keep_prob = 1. - drop_prob
         mask = Variable(torch.cuda.FloatTensor(x.size(0), 1, 1, 1).bernoulli_(keep_prob))
+        # mask = Variable(torch.tensor(x.size(0), 1, 1, 1, dtype=torch.float, device='cuda').bernoulli_(keep_prob))
         x.div_(keep_prob)
         x.mul_(mask)
     return x
@@ -13,7 +16,7 @@ class Cell(nn.Module):
 
     def __init__(self, genotype, C_prev_prev, C_prev, C, reduction, reduction_prev):
         super(Cell, self).__init__()
-        print(C_prev_prev, C_prev, C)
+        # print(C_prev_prev, C_prev, C)
 
         if reduction_prev:
             self.preprocess0 = FactorizedReduce(C_prev_prev, C)
@@ -118,6 +121,7 @@ class NetworkCIFAR(nn.Module):
         super(NetworkCIFAR, self).__init__()
         self._layers = layers
         self._auxiliary = auxiliary
+        self.drop_path_prob = 0.0
 
         stem_multiplier = 3
         C_curr = stem_multiplier * C

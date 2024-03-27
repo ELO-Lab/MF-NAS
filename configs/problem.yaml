@@ -22,3 +22,8 @@ nbasr:
     max_time: 9999999999
     max_eval: 25
     dataset: TIMIT
+
+darts:
+    max_time: 9999999999
+    max_eval: 9999999999
+    dataset: cifar10
