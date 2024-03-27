@@ -2,7 +2,6 @@ from problems import Problem
 from search_spaces import SS_DARTS
 from search_spaces.darts.utils import data_transforms_cifar10, AverageMeter, accuracy
 import torch.nn as nn
-import shutil
 
 import numpy as np
 import os
@@ -62,7 +61,6 @@ class DARTS(Problem):
 
     @staticmethod
     def zc_evaluate(network, **kwargs):
-        # TODO: Re-write
         metric = kwargs['metric']
 
         if metric in ['flops', 'params']:
@@ -76,12 +74,11 @@ class DARTS(Problem):
             else:
                 score = params
         else:
-            raise ValueError()
+            raise NotImplementedError()
         network.score = score
         return cost_time
 
     def train(self, network, **kwargs):
-        # TODO: Re-write
         metric = kwargs['metric']
         iepoch = kwargs['iepoch']
         network.model.to('cuda')
@@ -96,8 +93,10 @@ class DARTS(Problem):
 
         network_id = ''.join(list(map(str, network.genotype)))
         print('- Network:', self.search_space.decode(network.genotype))
+        score = -np.inf
         if network.info['cur_iepoch'][-1] != 0:
-            checkpoint = torch.load(f'{self.save_path}/{network_id}/epoch{network.info["cur_iepoch"][-1]}_checkpoints.pth.tar')
+            checkpoint = torch.load(f'{self.save_path}/{network_id}/checkpoint.pth.tar')
+            best_checkpoint = torch.load(f'{self.save_path}/{network_id}/best_model.pth.tar')
             network.model.load_state_dict(checkpoint['model_state_dict'])
             scheduler.load_state_dict(checkpoint['scheduler'])
             for state in optimizer.state.values():
@@ -105,9 +104,8 @@ class DARTS(Problem):
                     if isinstance(v, torch.Tensor):
                         state[k] = v.to('cuda')
             optimizer.load_state_dict(checkpoint['optimizer'])
+            score = best_checkpoint['score']
             print('  + Load weighted - Done!')
-
-        score = -np.inf
         s = time.time()
         for epoch in range(network.info['cur_iepoch'][-1], iepoch+1):
             network.model.drop_path_prob = drop_path_prob * epoch / epochs
@@ -121,14 +119,18 @@ class DARTS(Problem):
             print(f'  + Epoch: {epoch}  -  LR: {round(scheduler.get_last_lr()[0], 6)}  -  Train Acc: {round(train_acc, 2)}  -  Valid Acc: {round(valid_acc, 2)}  -  Best: {round(score, 2)}')
             if not os.path.isdir(f'{self.save_path}/{network_id}'):
                 os.makedirs(f'{self.save_path}/{network_id}')
-            save_checkpoint({
+            scheduler.step()
+            state = {
                 'epoch': epoch,
+                'score': score,
                 'model_state_dict': network.model.state_dict(),
-                'best_acc': score,
                 'optimizer': optimizer.state_dict(),
                 'scheduler': scheduler.state_dict(),
-            }, is_best, filename=f'{self.save_path}/{network_id}/epoch{epoch}')
-            scheduler.step()
+            }
+            if is_best:
+                torch.save(state, f'{self.save_path}/{network_id}/best_model.pth.tar')
+            if epoch == iepoch:
+                torch.save(state, f'{self.save_path}/{network_id}/checkpoint.pth.tar')
         cost_time = time.time() - s
         if 'loss' in metric:
             score *= -1
@@ -136,6 +138,7 @@ class DARTS(Problem):
 
         network.info['cur_iepoch'].append(iepoch)
         network.info['train_time'].append(cost_time)
+        print('-'*100)
         return cost_time
 
     def get_test_performance(self, network, **kwargs):
@@ -196,9 +199,3 @@ def infer(valid_queue, model, criterion):
             top5.update(prec5.item(), n)
 
     return top1.avg, objs.avg
-
-def save_checkpoint(state, is_best, filename):
-    torch.save(state, filename + '_checkpoints.pth.tar')
-    if is_best:
-        _filename = '/'.join(filename.split('/')[:-1])
-        shutil.copyfile(filename + '_checkpoints.pth.tar', f'{_filename}/best_model.pth.tar')
