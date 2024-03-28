@@ -2,3 +2,6 @@ numpy
 tqdm
 gdown
 tensorwatch
+torch
+torchvision
+torchaudio

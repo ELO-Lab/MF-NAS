@@ -42,11 +42,11 @@ def run(kwargs):
         if verbose:
             network_phenotype = problem.search_space.decode(network.genotype)
             print()
-            print(f'RunID: {run_id}\n')
-            logging.info(f'Best architecture found:\n{network_phenotype}\n')
-            logging.info(f'Performance: {test_performance} %')
-            logging.info(f'Search cost (in seconds): {search_cost}')
-            logging.info(f'Search cost (in epochs): {total_epoch}\n')
+            print(f'- RunID: {run_id}\n')
+            logging.info(f'  + Best architecture found:\n{network_phenotype}\n')
+            logging.info(f'  + Performance: {test_performance} %')
+            logging.info(f'  + Search cost (in seconds): {search_cost}')
+            logging.info(f'  + Search cost (in epochs): {total_epoch}\n')
             print('-'*100)
         trend_performance.append(test_performance)
         trend_search_cost.append(search_cost)
@@ -59,9 +59,9 @@ def run(kwargs):
             'Search cost (in epochs)': total_epoch,
         }
         p.dump(info_results, open(res_path + f'/results/run_{run_id}_results.p', 'wb'))
-    logging.info(f'Mean: {np.round(np.mean(trend_performance), 2)} \t Std: {np.round(np.std(trend_performance), 2)}')
-    logging.info(f'Search cost (in seconds): {np.round(np.mean(trend_search_cost))}')
-    logging.info(f'Search cost (in epochs): {np.round(np.mean(trend_total_epoch))}')
+    logging.info(f'- Mean: {np.round(np.mean(trend_performance), 2)} \t Std: {np.round(np.std(trend_performance), 2)}')
+    logging.info(f'- Search cost (in seconds): {np.round(np.mean(trend_search_cost))}')
+    logging.info(f'- Search cost (in epochs): {np.round(np.mean(trend_total_epoch))}')
     print('=' * 100)
 
 if __name__ == '__main__':
