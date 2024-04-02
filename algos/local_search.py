@@ -38,11 +38,13 @@ class IteratedLocalSearch(Algorithm):
         # Initialize starting solution
         init_network = sampling_solution(problem=self.problem)
 
-        time = self.problem.evaluate(init_network, using_zc_metric=self.using_zc_metric, metric=metric)
+        train_time, train_epoch, _ = self.problem.evaluate(init_network,
+                                                           using_zc_metric=self.using_zc_metric,
+                                                           metric=metric, cur_total_time=0.0, max_time=np.inf)
 
         self.n_eval += 1
-        self.total_time += time
-        self.total_epoch += self.iepoch
+        self.total_time += train_time
+        self.total_epoch += train_epoch
 
         cur_network, best_network = deepcopy(init_network), deepcopy(init_network)
         update_log(best_network=best_network, cur_network=cur_network, algorithm=self)
@@ -61,11 +63,13 @@ class IteratedLocalSearch(Algorithm):
 
                 ## For each neighbor, evaluate and compare to the current solution
                 for neighbor_network in list_neighbors:
-                    time = self.problem.evaluate(neighbor_network, using_zc_metric=self.using_zc_metric, metric=metric)
+                    train_time, train_epoch, _ = self.problem.evaluate(neighbor_network,
+                                                                       using_zc_metric=self.using_zc_metric,
+                                                                       metric=metric, cur_total_time=0.0, max_time=np.inf)
 
                     self.n_eval += 1
-                    self.total_time += time
-                    self.total_epoch += self.iepoch
+                    self.total_time += train_time
+                    self.total_epoch += train_epoch
 
                     ## Update the best solution so far
                     if neighbor_network.score > best_network.score:
@@ -96,11 +100,13 @@ class IteratedLocalSearch(Algorithm):
                         break
                 cur_network = deepcopy(list_neighbors[0])
 
-                time = self.problem.evaluate(cur_network, using_zc_metric=self.using_zc_metric, metric=metric)
+                train_time, train_epoch, _ = self.problem.evaluate(cur_network,
+                                                                   using_zc_metric=self.using_zc_metric,
+                                                                   metric=metric, cur_total_time=0.0, max_time=np.inf)
 
                 self.n_eval += 1
-                self.total_time += time
-                self.total_epoch += self.iepoch
+                self.total_time += train_time
+                self.total_epoch += train_epoch
 
                 if cur_network.score > best_network.score:
                     best_network = deepcopy(cur_network)

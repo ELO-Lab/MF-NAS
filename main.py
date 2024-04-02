@@ -2,7 +2,6 @@ import argparse
 import logging
 import sys
 import numpy as np
-from tqdm import tqdm
 from datetime import datetime
 from factory import get_problem, get_algorithm
 import json
@@ -36,8 +35,9 @@ def run(kwargs):
     json.dump(info_problem, open(res_path + '/configs/info_problem.json', 'w'), indent=4)
     json.dump(info_algo, open(res_path + '/configs/info_algo.json', 'w'), indent=4)
 
-    for run_id in tqdm(range(1, n_run + 1)):
-        network, search_cost, total_epoch = opt.run(seed=run_id)
+    init_seed = args.init_seed
+    for run_id in range(1, n_run + 1):
+        network, search_cost, total_epoch = opt.run(seed=init_seed + run_id)
         test_performance = problem.get_test_performance(network)
         if verbose:
             network_phenotype = problem.search_space.decode(network.genotype)
@@ -80,6 +80,7 @@ if __name__ == '__main__':
 
     ''' ENVIRONMENT '''
     parser.add_argument('--n_run', type=int, default=500, help='number of experiment runs')
+    parser.add_argument('--init_seed', type=int, default=0, help='initial random seed')
     parser.add_argument('--verbose', action='store_true')
 
     args = parser.parse_args()

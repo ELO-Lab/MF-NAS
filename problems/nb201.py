@@ -38,16 +38,32 @@ class NB_201(Problem):
         self.zc_database = json.load(open(ROOT_DIR + f'/database/nb201/zc_database.json'))
         self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nb201/[{self.dataset}]_data.p', 'rb'))
 
-    def evaluate(self, network, **kwargs):
-        using_zc_metric = bool(kwargs['using_zc_metric'])
+    def evaluate(self, networks, **kwargs):
+        max_time = kwargs['max_time']
+        cur_total_time = kwargs['cur_total_time']
+        TOTAL_TIME, TOTAL_EPOCHS = 0.0, 0
+        if not isinstance(networks, list) and not isinstance(networks, np.ndarray):
+            networks = [networks]
+        for _network in networks:
+            cur_score = _network.score
+            train_time, train_epoch = self._evaluate(_network, bool(kwargs['using_zc_metric']), kwargs['metric'])
+            if cur_total_time + TOTAL_TIME + train_time > max_time:
+                _network.score = cur_score
+                return TOTAL_TIME, TOTAL_EPOCHS, True
+            TOTAL_TIME += train_time
+            TOTAL_EPOCHS += train_epoch
+        return TOTAL_TIME, TOTAL_EPOCHS, False
+
+    def _evaluate(self, network, using_zc_metric, metric):
+        total_epoch = 0
         if using_zc_metric:
-            metric = kwargs['metric']
-            time = self.zc_evaluate(network, metric=metric)
+            _metric = metric
+            total_time = self.zc_evaluate(network, metric=_metric)
         else:
-            metric = '_'.join(kwargs['metric'].split('_')[:-1])
-            iepoch = int(kwargs['metric'].split('_')[-1])
-            time = self.train(network, metric=metric, iepoch=iepoch)
-        return time
+            _metric = '_'.join(metric.split('_')[:-1])
+            iepoch = int(metric.split('_')[-1])
+            total_time, total_epoch = self.train(network, metric=_metric, iepoch=iepoch)
+        return total_time, total_epoch
 
     def zc_evaluate(self, network, **kwargs):
         metric = kwargs['metric']
@@ -83,7 +99,7 @@ class NB_201(Problem):
             time /= 2
         network.info['cur_iepoch'].append(iepoch)
         network.info['train_time'].append(time)
-        return time
+        return time, dif_epoch
 
     def get_test_performance(self, network, **kwargs):
         genotype = network.genotype

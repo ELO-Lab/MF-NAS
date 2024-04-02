@@ -2,6 +2,7 @@ from . import Algorithm
 from models import Network
 from copy import deepcopy
 from .utils import sampling_solution, update_log
+import numpy as np
 
 class RandomSearch(Algorithm):
     def __init__(self):
@@ -36,11 +37,12 @@ class RandomSearch(Algorithm):
 
         while (self.n_eval <= max_eval) and (self.total_time <= max_time):
             network = sampling_solution(problem=self.problem)
-            time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
+            total_time, total_epoch, _ = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric,
+                                                               metric=metric, cur_total_time=0.0,  max_time=np.inf)
 
             self.n_eval += 1
-            self.total_time += time
-            self.total_epoch += self.iepoch
+            self.total_time += total_time
+            self.total_epoch += total_epoch
 
             if network.score > best_network.score:
                 best_network = deepcopy(network)

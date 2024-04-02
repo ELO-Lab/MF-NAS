@@ -46,10 +46,12 @@ class REA(Algorithm):
         else:
             init_pop, warmup_time = run_warm_up(self.n_sample_warmup, self.pop_size, self.problem, self.metric_warmup)
         for network in init_pop:
-            time = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric, metric=metric)
+            total_time, total_epoch, _ = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric,
+                                                               metric=metric, cur_total_time=0.0,
+                                                               max_time=np.inf)
             self.n_eval += 1
-            self.total_time += time
-            self.total_epoch += self.iepoch
+            self.total_time += total_time
+            self.total_epoch += total_epoch
             self.trend_time.append(self.total_time)
             population.append((network.score, network.genotype.copy()))
 
@@ -81,10 +83,12 @@ class REA(Algorithm):
             best_candidate = sorted(candidates, key=lambda i: i[0])[-1][1]
             new_network = mutate(best_candidate, self.prob_mutation, problem=self.problem)
 
-            time = self.problem.evaluate(new_network, using_zc_metric=self.using_zc_metric, metric=metric)
+            total_time, total_epoch, _ = self.problem.evaluate(new_network, using_zc_metric=self.using_zc_metric,
+                                                               metric=metric, cur_total_time=0.0,
+                                                               max_time=np.inf)
             self.n_eval += 1
-            self.total_time += time
-            self.total_epoch += self.iepoch
+            self.total_time += total_time
+            self.total_epoch += total_epoch
             self.trend_time.append(self.total_time)
 
             # In regularized evolution, we kill the oldest individual in the population.
@@ -105,8 +109,9 @@ def run_warm_up(n_sample, k, problem, metric):
             if problem.search_space.is_valid(genotype):
                 network = Network()
                 network.genotype = genotype
-                time = problem.evaluate(network, using_zc_metric=True, metric=metric)
-                total_times += time
+                total_time, _, _ = problem.evaluate(network, using_zc_metric=True, metric=metric,
+                                                    cur_total_time=0.0, max_time=np.inf)
+                total_times += total_time
                 list_network.append(network)
                 list_scores.append(network.score)
                 break
