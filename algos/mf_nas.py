@@ -28,6 +28,7 @@ class MF_NAS(Algorithm):
 
     def search(self, **kwargs):
         # Stage 1: Training-free Search
+        print('- Stage 1: Training-free Local Search')
         if self.optimizer_stage1 == 'FLS':
             optimizer_stage1 = IteratedLocalSearch(first_improvement=True)
         elif self.optimizer_stage1 == 'BLS':
@@ -70,6 +71,7 @@ class MF_NAS(Algorithm):
         ## Get top-k best solutions in terms of training-free metric value. They are the input of SH.
         topK_found_solutions = network_history_stage1[:self.n_candidate]
 
+        print('- Stage 2: Successive Halving')
         ## Initialize Successive Halving
         optimizer_stage2 = SuccessiveHalving()
         optimizer_stage2.adapt(self.problem)

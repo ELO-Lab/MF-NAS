@@ -27,3 +27,16 @@ darts:
     max_time: 9999999999
     max_eval: 9999999999
     dataset: cifar10
+    n_models_per_train: 4
+
+    drop_path_prob: 0.3
+    max_epochs: 600
+    learning_rate: 0.025
+    momentum: 0.9
+    weight_decay: 0.0003
+    batch_size: 32
+    report_freq: 50
+    train_portion: 0.5
+    auxiliary: True
+    auxiliary_weight: 0.4
+    grad_clip: 5

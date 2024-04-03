@@ -24,7 +24,7 @@ def get_problem(name, **kwargs):
     elif name == 'nbasr':
         return NB_ASR(max_eval, max_time, dataset), info_problem
     elif name == 'darts':
-        return DARTS(max_eval, max_time, dataset, save_path=kwargs['res_path']), info_problem
+        return DARTS(max_eval, max_time, dataset, save_path=kwargs['res_path'], n_models_per_train=kwargs['n_model_per_train']), info_problem
     else:
         raise ValueError(f'Not support this problem: {name}.')
 
