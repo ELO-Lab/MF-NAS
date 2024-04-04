@@ -2,6 +2,8 @@ import argparse
 import logging
 import sys
 import os
+import json
+
 import torch.nn as nn
 
 from torch.autograd import Variable
@@ -11,22 +13,29 @@ import torch
 import torchvision.datasets as dataset
 from search_spaces import SS_DARTS
 import numpy as np
+import gc
+from utils import set_seed
+import yaml
 
-drop_path_prob = 0.3
-max_epochs = 600
-learning_rate = 0.025
-momentum = 0.9
-weight_decay = 3e-4
-batch_size = 64
-report_freq = 50
-train_portion = 0.5
+with open('configs/problem.yaml', 'r') as file:
+    all_configs = yaml.safe_load(file)
+configs = all_configs['darts']
 
-auxiliary = True
-auxiliary_weight = 0.4
-grad_clip = 5
+drop_path_prob = configs['drop_path_prob']
+max_epochs = configs['max_epochs']
+learning_rate = configs['learning_rate']
+momentum = configs['momentum']
+weight_decay = configs['weight_decay']
+batch_size = configs['batch_size']
+train_portion = configs['train_portion']
+
+auxiliary = configs['auxiliary']
+auxiliary_weight = configs['auxiliary_weight']
+grad_clip = configs['grad_clip']
 
 SEARCH_SPACE = SS_DARTS()
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+set_seed(42)
 
 def run(kwargs):
     if kwargs.dataset == 'cifar10':
@@ -37,21 +46,22 @@ def run(kwargs):
         raise NotImplementedError
 
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=2)
-    valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=batch_size // 2, shuffle=False, pin_memory=True, num_workers=2)
+    valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=batch_size, shuffle=False, pin_memory=True, num_workers=2)
 
-    genotype = kwargs.genotype
+    network_id = kwargs.network_id
+    genotype = list(map(int, list(network_id)))
     model = SEARCH_SPACE.get_model(genotype)
     model.to(device)
 
     optimizer = torch.optim.SGD(model.parameters(), learning_rate, momentum=momentum, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, max_epochs)
 
-    start_iepoch = kwargs.start_iepoch if kwargs.start_iepoch != 0 else 1
+    start_iepoch = kwargs.start_iepoch
     end_iepoch = kwargs.end_iepoch
 
     save_path = kwargs.save_path
-    network_id = ''.join(list(map(str, genotype)))
     best_score = -np.inf
+    logging.info(f'- Network: {genotype}')
     if start_iepoch != 0:
         checkpoint = torch.load(f'{save_path}/{network_id}/checkpoint.pth.tar')
         model.load_state_dict(checkpoint['state_dict'])
@@ -66,14 +76,15 @@ def run(kwargs):
 
     criterion = nn.CrossEntropyLoss()
 
-    model.train()
-    for iepoch in range(start_iepoch, end_iepoch + 1):
+    for iepoch in range(start_iepoch + 1, end_iepoch + 1):
+        model.train()
         objs = AverageMeter()
         top1 = AverageMeter()
 
         model.drop_path_prob = drop_path_prob * iepoch / max_epochs
 
         for step, (inputs, targets) in enumerate(train_loader):
+            # print('Step:', step)
             inputs = Variable(inputs).cuda()
             targets = Variable(targets).cuda()
 
@@ -89,10 +100,12 @@ def run(kwargs):
             nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
             optimizer.step()
 
-            prec1, prec5 = accuracy(logits, targets, topk=(1,))
+            prec1 = accuracy(logits, targets, topk=(1,))[0]
             n = inputs.size(0)
             objs.update(loss.item(), n)
             top1.update(prec1.item(), n)
+            # if step == 10:
+            #     break
 
         train_acc, train_objs = top1.avg, objs.avg
 
@@ -100,7 +113,7 @@ def run(kwargs):
         top1 = AverageMeter()
         model.eval()
 
-        for _, (inputs, targets) in enumerate(valid_loader):
+        for step, (inputs, targets) in enumerate(valid_loader):
             with torch.no_grad():
                 inputs = Variable(inputs).cuda()
                 targets = Variable(targets).cuda()
@@ -108,10 +121,12 @@ def run(kwargs):
                 logits, _ = model(inputs)
                 loss = criterion(logits, targets)
 
-                prec1, prec5 = accuracy(logits, targets, topk=(1,))
+                prec1 = accuracy(logits, targets, topk=(1,))[0]
                 n = inputs.size(0)
                 objs.update(loss.item(), n)
                 top1.update(prec1.item(), n)
+            # if step == 10:
+            #     break
 
         valid_acc, valid_objs = top1.avg, objs.avg
 
@@ -134,13 +149,24 @@ def run(kwargs):
             torch.save(state, f'{save_path}/{network_id}/best_model.pth.tar')
         if iepoch == end_iepoch:
             torch.save(state, f'{save_path}/{network_id}/checkpoint.pth.tar')
+    fp = open(f'{save_path}/checklist.json', 'r')
+    checklist = json.load(fp)
+    fp.close()
+    checklist[network_id]['status'] = True
+    checklist[network_id]['score'] = best_score
+    fp = open(f'{save_path}/checklist.json', 'w')
+    json.dump(checklist, fp, indent=4)
+    fp.close()
+
+    torch.cuda.empty_cache()
+    gc.collect()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--start_iepoch', type=int)
     parser.add_argument('--end_iepoch', type=int)
-    parser.add_argument('--genotype', type=str)
+    parser.add_argument('--network_id', type=str)
 
     parser.add_argument('--dataset', type=str, default='cifar10')
     parser.add_argument('--save_path', type=str)
