@@ -28,6 +28,7 @@ darts:
     max_eval: 9999999999
     dataset: cifar10
     n_models_per_train: 4
+    using_ray: False
 
     drop_path_prob: 0.3
     max_epochs: 600

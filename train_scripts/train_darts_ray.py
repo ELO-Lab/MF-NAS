@@ -6,7 +6,6 @@ import json
 
 import torch.nn as nn
 
-from torch.autograd import Variable
 from search_spaces.darts.utils import data_transforms_cifar10, AverageMeter, accuracy
 
 import torch
@@ -17,7 +16,12 @@ import gc
 from utils import set_seed
 import yaml
 
-with open('configs/problem.yaml', 'r') as file:
+import ray.train
+from ray.train import ScalingConfig
+from ray.train.torch import TorchTrainer
+from tqdm import tqdm
+
+with open('../configs/problem.yaml', 'r') as file:
     all_configs = yaml.safe_load(file)
 configs = all_configs['darts']
 
@@ -35,35 +39,39 @@ grad_clip = configs['grad_clip']
 
 SEARCH_SPACE = SS_DARTS()
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-set_seed(42)
 
-def run(kwargs):
-    if kwargs.dataset == 'cifar10':
-        train_transform, test_transform = data_transforms_cifar10(cutout=True, cutout_length=16)
-        train_data = dataset.CIFAR10(root='./datasets/cifar10', train=True, download=True, transform=train_transform)
-        valid_data = dataset.CIFAR10(root='./datasets/cifar10', train=False, download=True, transform=test_transform)
-    else:
-        raise NotImplementedError
+train_transform, test_transform = data_transforms_cifar10(cutout=True, cutout_length=16)
+train_data = dataset.CIFAR10(root='./datasets/cifar10', train=True, download=True, transform=train_transform)
+valid_data = dataset.CIFAR10(root='./datasets/cifar10', train=False, download=True, transform=test_transform)
 
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=2)
-    valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=batch_size, shuffle=False, pin_memory=True, num_workers=2)
 
-    network_id = kwargs.network_id
+def train_func_per_worker(config):
+    set_seed(config['seed'])
+    network_id = config['network_id']
+
     genotype = list(map(int, list(network_id)))
     model = SEARCH_SPACE.get_model(genotype)
-    model.to(device)
+    model = ray.train.torch.prepare_model(model)
+
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=True,
+                                               num_workers=2)
+    valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=batch_size, shuffle=False, pin_memory=True,
+                                               num_workers=2)
+
+    train_loader = ray.train.torch.prepare_data_loader(train_loader)
+    valid_loader = ray.train.torch.prepare_data_loader(valid_loader)
 
     optimizer = torch.optim.SGD(model.parameters(), learning_rate, momentum=momentum, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, max_epochs)
 
-    start_iepoch = kwargs.start_iepoch
-    end_iepoch = kwargs.end_iepoch
+    start_iepoch = config['start_iepoch']
+    end_iepoch = config['end_iepoch']
 
-    save_path = kwargs.save_path
+    save_path = config['save_path']
     best_score = -np.inf
     logging.info(f'- Network: {genotype}')
     if start_iepoch != 0:
-        checkpoint = torch.load(f'{save_path}/{network_id}/checkpoint.pth.tar')
+        checkpoint = torch.load(f'{save_path}/{network_id}/last_checkpoint.pth.tar')
         model.load_state_dict(checkpoint['state_dict'])
         scheduler.load_state_dict(checkpoint['scheduler'])
         for state in optimizer.state.values():
@@ -73,21 +81,22 @@ def run(kwargs):
         optimizer.load_state_dict(checkpoint['optimizer'])
         best_score = checkpoint['best_score']
         logging.info('  + Load weighted - Done!')
-
+        print('  + Load weighted - Done')
     criterion = nn.CrossEntropyLoss()
 
     for iepoch in range(start_iepoch + 1, end_iepoch + 1):
+        # print('Iepoch:', iepoch)
         model.train()
         objs = AverageMeter()
         top1 = AverageMeter()
 
         model.drop_path_prob = drop_path_prob * iepoch / max_epochs
+        if ray.train.get_context().get_world_size() > 1:
+            train_loader.sampler.set_epoch(iepoch)
+            valid_loader.sampler.set_epoch(iepoch)
 
-        for step, (inputs, targets) in enumerate(train_loader):
+        for step, (inputs, targets) in enumerate(tqdm(train_loader)):
             # print('Step:', step)
-            inputs = Variable(inputs).cuda()
-            targets = Variable(targets).cuda()
-
             optimizer.zero_grad()
             logits, logits_aux = model(inputs)
             loss = criterion(logits, targets)
@@ -104,20 +113,16 @@ def run(kwargs):
             n = inputs.size(0)
             objs.update(loss.item(), n)
             top1.update(prec1.item(), n)
-            # if step == 10:
-            #     break
-
+            if step == 10:
+                break
         train_acc, train_objs = top1.avg, objs.avg
 
         objs = AverageMeter()
         top1 = AverageMeter()
         model.eval()
 
-        for step, (inputs, targets) in enumerate(valid_loader):
+        for step, (inputs, targets) in enumerate(tqdm(valid_loader)):
             with torch.no_grad():
-                inputs = Variable(inputs).cuda()
-                targets = Variable(targets).cuda()
-
                 logits, _ = model(inputs)
                 loss = criterion(logits, targets)
 
@@ -125,8 +130,8 @@ def run(kwargs):
                 n = inputs.size(0)
                 objs.update(loss.item(), n)
                 top1.update(prec1.item(), n)
-            # if step == 10:
-            #     break
+            if step == 10:
+                break
 
         valid_acc, valid_objs = top1.avg, objs.avg
 
@@ -134,10 +139,8 @@ def run(kwargs):
         best_score = max(valid_acc, best_score)
         scheduler.step()
 
-        logging.info(
+        print(
             f'  + Epoch: {iepoch}  -  LR: {round(scheduler.get_last_lr()[0], 6)}  -  Train Acc: {round(train_acc, 2)}  -  Valid Acc: {round(valid_acc, 2)}  -  Best: {round(best_score, 2)}')
-        if not os.path.isdir(f'{save_path}/{network_id}'):
-            os.makedirs(f'{save_path}/{network_id}')
         state = {
             'epoch': iepoch,
             'best_score': best_score,
@@ -146,20 +149,54 @@ def run(kwargs):
             'scheduler': scheduler.state_dict(),
         }
         if is_best:
-            torch.save(state, f'{save_path}/{network_id}/best_model.pth.tar')
+            path = f'{save_path}/{network_id}/best_model.pth.tar'
+            torch.save(state, path)
         if iepoch == end_iepoch:
-            torch.save(state, f'{save_path}/{network_id}/checkpoint.pth.tar')
-    fp = open(f'{save_path}/checklist.json', 'r')
-    checklist = json.load(fp)
-    fp.close()
-    checklist[network_id]['status'] = True
-    checklist[network_id]['score'] = best_score
-    fp = open(f'{save_path}/checklist.json', 'w')
-    json.dump(checklist, fp, indent=4)
-    fp.close()
-
+            path = f'{save_path}/{network_id}/last_checkpoint.pth.tar'
+            torch.save(state, path)
+        ray.train.report(
+            {}, checkpoint=ray.train.Checkpoint.from_directory(f'{save_path}/{network_id}'),
+        )
     torch.cuda.empty_cache()
     gc.collect()
+
+
+def run(kwargs):
+    seed = kwargs.seed
+    set_seed(seed)
+    num_of_gpus = torch.cuda.device_count()
+    scaling_config = ScalingConfig(num_workers=num_of_gpus, use_gpu=True)
+    save_path = kwargs.save_path
+    network_id = kwargs.network_id
+    train_config = {
+        "network_id": kwargs.network_id,
+        "start_iepoch": kwargs.start_iepoch,
+        "end_iepoch": kwargs.end_iepoch,
+        "save_path": save_path,
+        "seed": seed
+    }
+
+    if not os.path.isdir(f'{save_path}/{network_id}'):
+        os.makedirs(f'{save_path}/{network_id}')
+
+    # torch_config = TorchConfig(backend='gloo')
+    # Initialize a Ray TorchTrainer
+    trainer = TorchTrainer(
+        train_loop_per_worker=train_func_per_worker,
+        train_loop_config=train_config,
+        scaling_config=scaling_config,
+        # torch_config=torch_config
+    )
+    result = trainer.fit()
+
+    checkpoint = torch.load(f'{save_path}/{network_id}/last_checkpoint.pth.tar')
+    best_score = checkpoint['best_score']
+    train_status = {'status': True, 'score': best_score}
+
+    fp = open(f'{save_path}/{network_id}/status.json', 'w')
+    json.dump(train_status, fp, indent=4)
+    fp.close()
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -170,6 +207,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--dataset', type=str, default='cifar10')
     parser.add_argument('--save_path', type=str)
+    parser.add_argument('--seed', type=int, default=42)
 
     args = parser.parse_args()
 

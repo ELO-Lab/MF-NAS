@@ -7,7 +7,9 @@ from factory import get_problem, get_algorithm
 import json
 import pickle as p
 import os
+import pathlib
 
+root = pathlib.Path(__file__).parent
 
 def run(kwargs):
     dt_string = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
@@ -17,7 +19,7 @@ def run(kwargs):
     dataset = kwargs.dataset
     if '201' in search_space:
         search_space += f'_{dataset}'
-    res_path = f'./exp/{opt_name}_{search_space}_' + dt_string
+    res_path = f'{root}/exp/{opt_name}_{search_space}_' + dt_string
     os.mkdir(res_path)
     os.mkdir(res_path + '/results')
 
@@ -43,11 +45,11 @@ def run(kwargs):
             network_phenotype = problem.search_space.decode(network.genotype)
             print()
             print(f'- RunID: {run_id}\n')
-            logging.info(f'  + Best architecture found:\n{network_phenotype}\n')
-            logging.info(f'  + Performance: {test_performance} %')
-            logging.info(f'  + Search cost (in seconds): {search_cost}')
-            logging.info(f'  + Search cost (in epochs): {total_epoch}\n')
-            print('-'*100)
+            print(f'  + Best architecture found:\n{network_phenotype}\n')
+            print(f'  + Performance: {test_performance} %')
+            print(f'  + Search cost (in seconds): {search_cost}')
+            print(f'  + Search cost (in epochs): {total_epoch}\n')
+            print('-' * 100)
         trend_performance.append(test_performance)
         trend_search_cost.append(search_cost)
         trend_total_epoch.append(total_epoch)
@@ -59,9 +61,9 @@ def run(kwargs):
             'Search cost (in epochs)': total_epoch,
         }
         p.dump(info_results, open(res_path + f'/results/run_{run_id}_results.p', 'wb'))
-    logging.info(f'- Mean: {np.round(np.mean(trend_performance), 2)} \t Std: {np.round(np.std(trend_performance), 2)}')
-    logging.info(f'- Search cost (in seconds): {np.round(np.mean(trend_search_cost))}')
-    logging.info(f'- Search cost (in epochs): {np.round(np.mean(trend_total_epoch))}')
+    print(f'- Mean: {np.round(np.mean(trend_performance), 2)} \t Std: {np.round(np.std(trend_performance), 2)}')
+    print(f'- Search cost (in seconds): {np.round(np.mean(trend_search_cost))}')
+    print(f'- Search cost (in epochs): {np.round(np.mean(trend_total_epoch))}')
     print('=' * 100)
 
 if __name__ == '__main__':

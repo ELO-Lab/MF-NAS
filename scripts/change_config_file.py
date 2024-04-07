@@ -5,7 +5,7 @@ def run(kwargs):
     f = open(kwargs.config_file, 'r')
     all_configs = yaml.safe_load(f)
 
-    all_configs[kwargs.algo][kwargs.key] = kwargs.value
+    all_configs[kwargs.object][kwargs.attribute] = kwargs.new_value
     f.close()
 
     f = open(kwargs.config_file, 'w')

@@ -44,7 +44,7 @@ class SuccessiveHalving(Algorithm):
                                                                            using_zc_metric=self.using_zc_metric,
                                                                            metric=self.metric + f'_{iepoch}',
                                                                            cur_total_time=self.total_time,
-                                                                           max_time=max_time)
+                                                                           max_time=max_time, algo=self)
 
             self.total_time += train_time
             self.total_epoch += train_epoch

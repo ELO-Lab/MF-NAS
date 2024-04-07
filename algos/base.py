@@ -12,6 +12,7 @@ class Algorithm(ABC):
 
         self.n_eval = 0
         self.total_time, self.total_epoch = 0.0, 0.0
+        self.seed = 0
 
     def reset(self):
         self.n_eval = 0
@@ -25,6 +26,7 @@ class Algorithm(ABC):
         self.problem = problem
 
     def run(self, seed, **kwargs):
+        self.seed = seed
         set_seed(seed)
         self.reset()
         network, search_cost, total_epoch = self._run(**kwargs)
