@@ -36,7 +36,7 @@ class DARTS(Problem):
                 TOTAL_TIME += total_time
         else:
             end_iepoch = int(kwargs['metric'].split('_')[-1])
-            total_time, total_epoch = self._parallel_train(list_network=networks, end_iepoch=end_iepoch)
+            total_time, total_epoch = self._parallel_train(list_network=networks, end_iepoch=end_iepoch, **kwargs)
             TOTAL_TIME += total_time
             TOTAL_EPOCHS += total_epoch
         return TOTAL_TIME, TOTAL_EPOCHS, False
@@ -70,9 +70,9 @@ class DARTS(Problem):
                 total_epoch += (end_iepoch - start_iepoch)
                 network_id = ''.join(list(map(str, network.genotype)))
                 if self.using_ray:
-                    script = f"python train_darts_ray.py --save_path {self.save_path} --network_id {network_id} --dataset {self.dataset} --start_iepoch {start_iepoch} --end_iepoch {end_iepoch} | tee -a {self.save_path}/log_{network_id}_{start_iepoch}_{end_iepoch}.txt &"
+                    script = f"python train_darts_ray.py --seed {kwargs['algo'].seed} --save_path {self.save_path} --network_id {network_id} --dataset {self.dataset} --start_iepoch {start_iepoch} --end_iepoch {end_iepoch} | tee -a {self.save_path}/log_{network_id}_{start_iepoch}_{end_iepoch}.txt &"
                 else:
-                    script = f"python train_darts.py --save_path {self.save_path} --network_id {network_id} --dataset {self.dataset} --start_iepoch {start_iepoch} --end_iepoch {end_iepoch} | tee -a {self.save_path}/log_{network_id}_{start_iepoch}_{end_iepoch}.txt &"
+                    script = f"python train_darts.py --seed {kwargs['algo'].seed} --save_path {self.save_path} --network_id {network_id} --dataset {self.dataset} --start_iepoch {start_iepoch} --end_iepoch {end_iepoch} | tee -a {self.save_path}/log_{network_id}_{start_iepoch}_{end_iepoch}.txt &"
                 os.system(script)
             while True:
                 done = True

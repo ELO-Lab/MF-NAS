@@ -31,11 +31,11 @@ darts:
     using_ray: False
 
     drop_path_prob: 0.3
-    max_epochs: 600
+    max_epochs: 100
     learning_rate: 0.025
     momentum: 0.9
     weight_decay: 0.0003
-    batch_size: 32
+    batch_size: 64
     train_portion: 0.5
     auxiliary: True
     auxiliary_weight: 0.4

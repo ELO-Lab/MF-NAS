@@ -40,14 +40,24 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 def run(kwargs):
     set_seed(kwargs.seed)
     if kwargs.dataset == 'cifar10':
-        train_transform, test_transform = data_transforms_cifar10(cutout=True, cutout_length=16)
+        train_transform, valid_transform = data_transforms_cifar10(cutout=True, cutout_length=16)
         train_data = dataset.CIFAR10(root='./datasets/cifar10', train=True, download=True, transform=train_transform)
-        valid_data = dataset.CIFAR10(root='./datasets/cifar10', train=False, download=True, transform=test_transform)
+        # valid_data = dataset.CIFAR10(root='./datasets/cifar10', train=False, download=True, transform=test_transform)
     else:
         raise NotImplementedError
 
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=2)
-    valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=batch_size, shuffle=False, pin_memory=True, num_workers=2)
+    num_train = len(train_data)
+    indices = list(range(num_train))
+    split = int(np.floor(train_portion * num_train))
+
+    # train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=2)
+    # valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=batch_size, shuffle=False, pin_memory=True, num_workers=2)
+
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[:split]),
+                                               pin_memory=True, num_workers=2)
+    valid_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size,
+                                               sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[split:num_train]),
+                                               pin_memory=True, num_workers=2)
 
     network_id = kwargs.network_id
     genotype = list(map(int, list(network_id)))
@@ -85,7 +95,6 @@ def run(kwargs):
         model.drop_path_prob = drop_path_prob * iepoch / max_epochs
 
         for step, (inputs, targets) in enumerate(tqdm(train_loader)):
-            # print('Step:', step)
             inputs = Variable(inputs).cuda()
             targets = Variable(targets).cuda()
 
@@ -105,8 +114,6 @@ def run(kwargs):
             n = inputs.size(0)
             objs.update(loss.item(), n)
             top1.update(prec1.item(), n)
-            # if step == 10:
-            #     break
 
         train_acc, train_objs = top1.avg, objs.avg
 
@@ -126,8 +133,6 @@ def run(kwargs):
                 n = inputs.size(0)
                 objs.update(loss.item(), n)
                 top1.update(prec1.item(), n)
-            # if step == 10:
-            #     break
 
         valid_acc, valid_objs = top1.avg, objs.avg
 
