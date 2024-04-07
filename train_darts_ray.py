@@ -21,7 +21,7 @@ from ray.train import ScalingConfig
 from ray.train.torch import TorchTrainer
 from tqdm import tqdm
 
-with open('../configs/problem.yaml', 'r') as file:
+with open('configs/problem.yaml', 'r') as file:
     all_configs = yaml.safe_load(file)
 configs = all_configs['darts']
 
