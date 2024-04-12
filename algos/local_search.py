@@ -4,6 +4,7 @@ from copy import deepcopy
 import itertools
 import numpy as np
 from .utils import sampling_solution, update_log
+from tqdm import tqdm
 
 class IteratedLocalSearch(Algorithm):
     def __init__(self, first_improvement=True):
@@ -36,6 +37,8 @@ class IteratedLocalSearch(Algorithm):
         metric = kwargs['metric']
 
         # Initialize starting solution
+        pbar = tqdm(total=max_eval)
+
         init_network = sampling_solution(problem=self.problem)
 
         train_time, train_epoch, _ = self.problem.evaluate(init_network,
@@ -43,6 +46,7 @@ class IteratedLocalSearch(Algorithm):
                                                            metric=metric, cur_total_time=0.0, max_time=np.inf)
 
         self.n_eval += 1
+        pbar.update(1)
         self.total_time += train_time
         self.total_epoch += train_epoch
 
@@ -68,6 +72,7 @@ class IteratedLocalSearch(Algorithm):
                                                                        metric=metric, cur_total_time=0.0, max_time=np.inf)
 
                     self.n_eval += 1
+                    pbar.update(1)
                     self.total_time += train_time
                     self.total_epoch += train_epoch
 
@@ -105,13 +110,14 @@ class IteratedLocalSearch(Algorithm):
                                                                    metric=metric, cur_total_time=0.0, max_time=np.inf)
 
                 self.n_eval += 1
+                pbar.update(1)
                 self.total_time += train_time
                 self.total_epoch += train_epoch
 
                 if cur_network.score > best_network.score:
                     best_network = deepcopy(cur_network)
                 update_log(best_network=best_network, cur_network=cur_network, algorithm=self)
-
+        pbar.close()
         return best_network
 
 def get_indices(genotype, distance):

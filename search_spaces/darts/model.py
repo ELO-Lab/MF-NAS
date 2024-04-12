@@ -163,6 +163,11 @@ class NetworkCIFAR(nn.Module):
         logits = self.classifier(out.view(out.size(0), -1))
         return logits, logits_aux
 
+    def forward_before_global_avg_pool(self, input):
+        s0 = s1 = self.stem(input)
+        for i, cell in enumerate(self.cells):
+            s0, s1 = s1, cell(s0, s1, self.drop_path_prob)
+        return s1
 
 class NetworkImageNet(nn.Module):
 

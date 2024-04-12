@@ -42,7 +42,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 train_transform, test_transform = data_transforms_cifar10(cutout=True, cutout_length=16)
 train_data = dataset.CIFAR10(root='./datasets/cifar10', train=True, download=True, transform=train_transform)
-valid_data = dataset.CIFAR10(root='./datasets/cifar10', train=False, download=True, transform=test_transform)
+# valid_data = dataset.CIFAR10(root='./datasets/cifar10', train=False, download=True, transform=test_transform)
 
 
 def train_func_per_worker(config):
@@ -53,10 +53,20 @@ def train_func_per_worker(config):
     model = SEARCH_SPACE.get_model(genotype)
     model = ray.train.torch.prepare_model(model)
 
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=True,
-                                               num_workers=2)
-    valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=batch_size, shuffle=False, pin_memory=True,
-                                               num_workers=2)
+    # train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=True,
+    #                                            num_workers=2)
+    # valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=batch_size, shuffle=False, pin_memory=True,
+    #                                            num_workers=2)
+
+    num_train = len(train_data)
+    indices = list(range(num_train))
+    split = int(np.floor(train_portion * num_train))
+
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[:split]),
+                                               pin_memory=True, num_workers=2)
+    valid_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size,
+                                               sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[split:num_train]),
+                                               pin_memory=True, num_workers=2)
 
     train_loader = ray.train.torch.prepare_data_loader(train_loader)
     valid_loader = ray.train.torch.prepare_data_loader(valid_loader)
@@ -113,8 +123,6 @@ def train_func_per_worker(config):
             n = inputs.size(0)
             objs.update(loss.item(), n)
             top1.update(prec1.item(), n)
-            if step == 10:
-                break
         train_acc, train_objs = top1.avg, objs.avg
 
         objs = AverageMeter()
@@ -130,8 +138,6 @@ def train_func_per_worker(config):
                 n = inputs.size(0)
                 objs.update(loss.item(), n)
                 top1.update(prec1.item(), n)
-            if step == 10:
-                break
 
         valid_acc, valid_objs = top1.avg, objs.avg
 

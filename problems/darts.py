@@ -7,7 +7,8 @@ import os
 import torchvision
 from utils.params_flops_counters import get_model_infos
 import pathlib
-
+from zc_predictors.core import ZeroCost
+from zc_predictors.utils import get_config_for_zc_predictor
 root = pathlib.Path(__file__).parent.parent
 
 class DARTS(Problem):
@@ -24,6 +25,9 @@ class DARTS(Problem):
 
         _ = torchvision.datasets.CIFAR10(root='./datasets/cifar10', train=True, download=True)
         _ = torchvision.datasets.CIFAR10(root='./datasets/cifar10', train=False, download=True)
+
+        config = get_config_for_zc_predictor('darts', 'CIFAR-10', './datasets/cifar10', 42)
+        self.zc_predictor = ZeroCost(config)
 
     def evaluate(self, networks, **kwargs):
         TOTAL_TIME, TOTAL_EPOCHS = 0.0, 0
@@ -43,18 +47,19 @@ class DARTS(Problem):
 
     def zc_evaluate(self, network, **kwargs):
         metric = kwargs['metric']
+        model = self.search_space.get_model(network.genotype, auxiliary=False)
 
+        s = time.time()
         if metric in ['flops', 'params']:
-            s = time.time()
-            model = self.search_space.get_model(network.genotype)
             flops, params = get_model_infos(model, shape=(1, 3, 32, 32))  # Params in MB
-            cost_time = time.time() - s
             if metric == 'flops':
                 score = flops
             else:
                 score = params
         else:
-            raise NotImplementedError()
+            scores = self.zc_predictor.query(model, metric)
+            score = scores[metric]
+        cost_time = time.time() - s
         network.score = score
         return cost_time
 
@@ -95,13 +100,5 @@ class DARTS(Problem):
         return total_time, total_epoch
 
     def get_test_performance(self, network, **kwargs):
+        print('This is the validation performance. To achieve the test performance, you need to train from scratch.')
         return network.score
-        # pass
-        # network.model.to('cuda')
-        # network_id = ''.join(list(map(str, network.genotype)))
-        # checkpoint = torch.load(f'{self.save_path}/{network_id}/best_model.pth.tar')
-        # network.model.load_state_dict(checkpoint['model_state_dict'])
-        # network.model.drop_path_prob = 0.3
-        # network.model._auxiliary = False
-        # test_acc, test_objs = infer(self.test_queue, network.model, criterion)
-        # return test_acc
