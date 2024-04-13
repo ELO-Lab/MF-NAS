@@ -48,7 +48,10 @@ class DARTSCell(nn.Module):
             xh_prev = torch.cat([x, h_prev], dim=-1)
         c0, h0 = torch.split(xh_prev.mm(self._W0), self.nhid, dim=-1)
         c0 = c0.sigmoid()
-        h0 = self._get_activation(self.init_op)(h0)
+        if self.init_op == 'none':
+            h0.mul(0.)
+        else:
+            h0 = self._get_activation(self.init_op)(h0)
         s0 = h_prev + c0 * (h0 - h_prev)
         return s0
 
@@ -77,8 +80,11 @@ class DARTSCell(nn.Module):
                 ch = s_prev.mm(self._Ws[i])
             c, h = torch.split(ch, self.nhid, dim=-1)
             c = c.sigmoid()
-            fn = self._get_activation(name)
-            h = fn(h)
+            if name == 'none':
+                h.mul(0.)
+            else:
+                fn = self._get_activation(name)
+                h = fn(h)
             s = s_prev + c * (h - s_prev)
             states += [s]
         output = torch.mean(torch.stack([states[i] for i in self.genotype.concat], -1), -1)
