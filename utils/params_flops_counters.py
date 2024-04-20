@@ -4,7 +4,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-
+import copy
 
 def count_parameters_in_MB(model):
     return count_parameters(model, "mb", deprecated=True)
@@ -36,8 +36,8 @@ def count_parameters(model_or_parameters, unit="mb", deprecated=False):
     return counts
 
 
-def get_model_infos(model, shape):
-    # model = copy.deepcopy( model )
+def get_model_infos(ori_model, shape):
+    model = copy.deepcopy(ori_model)
 
     model = add_flops_counting_methods(model)
     # model = model.cuda()

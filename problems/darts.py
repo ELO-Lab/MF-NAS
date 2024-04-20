@@ -9,10 +9,14 @@ from utils.params_flops_counters import get_model_infos
 import pathlib
 from zc_predictors.core import ZeroCost
 from zc_predictors.utils import get_config_for_zc_predictor
+import pickle as p
 root = pathlib.Path(__file__).parent.parent
 
+METRICS = ['epe_nas', 'fisher', 'flops', 'grad_norm', 'grasp', 'jacov', 'l2_norm', 'nwot', 'params', 'plain', 'snip',
+           'synflow', 'zen']
+
 class DARTS(Problem):
-    def __init__(self, max_eval, max_time, dataset, **kwargs):
+    def __init__(self, max_eval, max_time, dataset='cifar10', **kwargs):
         super().__init__(SS_DARTS(), max_eval, max_time)
         self.dataset = dataset
         self.save_path = kwargs['save_path']
@@ -23,11 +27,12 @@ class DARTS(Problem):
             import ray
             ray.init(_temp_dir=f'{root}/exp')
 
-        _ = torchvision.datasets.CIFAR10(root='./datasets/cifar10', train=True, download=True)
-        _ = torchvision.datasets.CIFAR10(root='./datasets/cifar10', train=False, download=True)
+        _ = torchvision.datasets.CIFAR10(root=f'{root}/dataset/cifar10', train=True, download=True)
+        _ = torchvision.datasets.CIFAR10(root=f'{root}/dataset/cifar10', train=False, download=True)
 
-        config = get_config_for_zc_predictor('darts', 'CIFAR-10', './datasets/cifar10', 42)
+        config = get_config_for_zc_predictor('darts', 'CIFAR-10', f'{root}/dataset/cifar10', 42)
         self.zc_predictor = ZeroCost(config)
+        self.GP_model = p.load(open(f'{root}/database/model_all-multiple-0.7-v2_9.p', 'rb'))
 
     def evaluate(self, networks, **kwargs):
         TOTAL_TIME, TOTAL_EPOCHS = 0.0, 0
@@ -50,15 +55,26 @@ class DARTS(Problem):
         model = self.search_space.get_model(network.genotype, auxiliary=False)
 
         s = time.time()
-        if metric in ['flops', 'params']:
+        if isinstance(metric, list):
+            list_scores = {metric: -100000 for metric in METRICS}
+            predicted_scores = self.zc_predictor.query(model, metric)
+            for metric, value in predicted_scores.items():
+                list_scores[metric] = value
             flops, params = get_model_infos(model, shape=(1, 3, 32, 32))  # Params in MB
-            if metric == 'flops':
-                score = flops
-            else:
-                score = params
+            list_scores['flops'] = flops
+            list_scores['params'] = params
+            X = np.array([list(list_scores.values())])
+            score = self.GP_model.predict(X)
         else:
-            scores = self.zc_predictor.query(model, metric)
-            score = scores[metric]
+            if metric in ['flops', 'params']:
+                flops, params = get_model_infos(model, shape=(1, 3, 32, 32))  # Params in MB
+                if metric == 'flops':
+                    score = flops
+                else:
+                    score = params
+            else:
+                scores = self.zc_predictor.query(model, metric)
+                score = scores[metric]
         cost_time = time.time() - s
         network.score = score
         return cost_time
@@ -102,3 +118,11 @@ class DARTS(Problem):
     def get_test_performance(self, network, **kwargs):
         print('This is the validation performance. To achieve the test performance, you need to train from scratch.')
         return network.score
+
+if __name__ == '__main__':
+    problem = DARTS(100, 100, 'cifar10', save_path='None', n_models_per_train=1, using_ray=False)
+    ss = SS_DARTS()
+    genotype = ss.sample(True)
+    model = ss.get_model(genotype=genotype, search=True)
+    _, _, _ = problem.evaluate(networks=[model], using_zc_metric=True, metric=['flops', 'zen', 'synflow'])
+    print(model.score)

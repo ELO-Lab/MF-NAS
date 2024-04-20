@@ -504,7 +504,7 @@ def get_config_for_zc_predictor(ss, dataset, database_path, seed):
         {
             'search_space': ss,
             'dataset': dataset,
-            'root_data': database_path + '/dataset',
+            'root_data': database_path,
             'search':
             {
                 'batch_size': 64,
