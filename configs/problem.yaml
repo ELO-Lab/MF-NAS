@@ -27,7 +27,7 @@ darts:
     max_time: 9999999999
     max_eval: 9999999999
     dataset: cifar10
-    n_models_per_train: 4
+    n_models_per_train: 32
     using_ray: False
 
     drop_path_prob: 0.3
@@ -40,3 +40,37 @@ darts:
     auxiliary: True
     auxiliary_weight: 0.4
     grad_clip: 5
+
+ptb:
+    search:
+        max_time: 9999999999
+        max_eval: 9999999999
+        dataset: pbt
+        n_models_per_train: 4
+        using_ray: False
+
+        lr: 20
+        batch_size: 64
+        wdecay: 0.0000005
+        bptt: 35
+        dropout: 0.75
+        dropouth: 0.25
+        dropoutx: 0.75
+        dropouti: 0.2
+        alpha: 0
+        beta: 0.001
+        clip: 0.25
+
+    evaluate:
+        max_epoch: 8000
+        lr: 20
+        batch_size: 64
+        wdecay: 0.0000008
+        bptt: 35
+        dropout: 0.75
+        dropouth: 0.25
+        dropoutx: 0.75
+        dropouti: 0.2
+        alpha: 0
+        beta: 0.001
+        clip: 0.25

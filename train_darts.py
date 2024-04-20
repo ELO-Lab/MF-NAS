@@ -41,7 +41,7 @@ def run(kwargs):
     set_seed(kwargs.seed)
     if kwargs.dataset == 'cifar10':
         train_transform, valid_transform = data_transforms_cifar10(cutout=True, cutout_length=16)
-        train_data = dataset.CIFAR10(root='./datasets/cifar10', train=True, download=True, transform=train_transform)
+        train_data = dataset.CIFAR10(root='./dataset/cifar10', train=True, download=True, transform=train_transform)
         # valid_data = dataset.CIFAR10(root='./datasets/cifar10', train=False, download=True, transform=test_transform)
     else:
         raise NotImplementedError

@@ -56,6 +56,11 @@ class DARTS(Problem):
 
         s = time.time()
         if isinstance(metric, list):
+            try:
+                metric.remove('flops')
+                metric.remove('params')
+            except ValueError:
+                pass
             list_scores = {metric: -100000 for metric in METRICS}
             predicted_scores = self.zc_predictor.query(model, metric)
             for metric, value in predicted_scores.items():
@@ -64,7 +69,7 @@ class DARTS(Problem):
             list_scores['flops'] = flops
             list_scores['params'] = params
             X = np.array([list(list_scores.values())])
-            score = self.GP_model.predict(X)
+            score = self.GP_model.predict(X)[0]
         else:
             if metric in ['flops', 'params']:
                 flops, params = get_model_infos(model, shape=(1, 3, 32, 32))  # Params in MB
@@ -118,11 +123,3 @@ class DARTS(Problem):
     def get_test_performance(self, network, **kwargs):
         print('This is the validation performance. To achieve the test performance, you need to train from scratch.')
         return network.score
-
-if __name__ == '__main__':
-    problem = DARTS(100, 100, 'cifar10', save_path='None', n_models_per_train=1, using_ray=False)
-    ss = SS_DARTS()
-    genotype = ss.sample(True)
-    model = ss.get_model(genotype=genotype, search=True)
-    _, _, _ = problem.evaluate(networks=[model], using_zc_metric=True, metric=['flops', 'zen', 'synflow'])
-    print(model.score)
