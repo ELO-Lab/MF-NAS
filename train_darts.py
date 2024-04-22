@@ -167,7 +167,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--start_iepoch', type=int)
     parser.add_argument('--end_iepoch', type=int)
-    parser.add_argument('--network_id', type=str)
+    parser.add_argument('--network_id', default='00414221601232033110105103413443', type=str)
     parser.add_argument('--device', type=str, default=None)
 
     parser.add_argument('--dataset', type=str, default='cifar10')
