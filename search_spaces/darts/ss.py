@@ -5,6 +5,7 @@ from search_spaces import SearchSpace
 from collections import namedtuple
 from search_spaces.darts.model import NetworkCIFAR
 import numpy as np
+import torch
 
 Genotype = namedtuple("Genotype", "normal normal_concat reduce reduce_concat")
 Genotype_cell = namedtuple('CellGenotype', 'cell concat')
@@ -80,11 +81,13 @@ class SS_DARTS(SearchSpace):
                 return False
         return True
 
-    def get_model(self, genotype, auxiliary=True, search=True):
+    def get_model(self, genotype, auxiliary=True, search=True, device=None):
         phenotype = self.decode(genotype)
+        if device is None:
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
         if search:
-            return NetworkCIFAR(C=24, num_classes=10, layers=8, auxiliary=auxiliary, genotype=phenotype)
-        return NetworkCIFAR(C=36, num_classes=10, layers=20, auxiliary=True, genotype=phenotype)
+            return NetworkCIFAR(C=24, num_classes=10, layers=8, auxiliary=auxiliary, genotype=phenotype, device=device)
+        return NetworkCIFAR(C=36, num_classes=10, layers=20, auxiliary=True, genotype=phenotype, device=device)
 
     # ------------------------ Following functions are specific to DARTS search space ------------------------- #
     @staticmethod

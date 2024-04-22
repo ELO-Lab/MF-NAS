@@ -6,7 +6,7 @@ import json
 
 import torch.nn as nn
 
-from torch.autograd import Variable
+# from torch.autograd import Variable
 from search_spaces.darts.utils import data_transforms_cifar10, AverageMeter, accuracy
 
 import torch
@@ -35,7 +35,6 @@ auxiliary_weight = configs['auxiliary_weight']
 grad_clip = configs['grad_clip']
 
 SEARCH_SPACE = SS_DARTS()
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 def run(kwargs):
     set_seed(kwargs.seed)
@@ -61,7 +60,7 @@ def run(kwargs):
 
     network_id = kwargs.network_id
     genotype = list(map(int, list(network_id)))
-    model = SEARCH_SPACE.get_model(genotype)
+    model = SEARCH_SPACE.get_model(genotype, device=device)
     model.to(device)
 
     optimizer = torch.optim.SGD(model.parameters(), learning_rate, momentum=momentum, weight_decay=weight_decay)
@@ -80,7 +79,7 @@ def run(kwargs):
         for state in optimizer.state.values():
             for k, v in state.items():
                 if isinstance(v, torch.Tensor):
-                    state[k] = v.to('cuda')
+                    state[k] = v.to(device)
         optimizer.load_state_dict(checkpoint['optimizer'])
         best_score = checkpoint['best_score']
         logging.info('  + Load weighted - Done!')
@@ -95,8 +94,8 @@ def run(kwargs):
         model.drop_path_prob = drop_path_prob * iepoch / max_epochs
 
         for step, (inputs, targets) in enumerate(tqdm(train_loader)):
-            inputs = Variable(inputs).cuda()
-            targets = Variable(targets).cuda()
+            inputs = inputs.to(device)
+            targets = targets.to(device)
 
             optimizer.zero_grad()
             logits, logits_aux = model(inputs)
@@ -123,8 +122,8 @@ def run(kwargs):
 
         for step, (inputs, targets) in enumerate(tqdm(valid_loader)):
             with torch.no_grad():
-                inputs = Variable(inputs).cuda()
-                targets = Variable(targets).cuda()
+                inputs = inputs.to(device)
+                targets = targets.to(device)
 
                 logits, _ = model(inputs)
                 loss = criterion(logits, targets)
@@ -169,6 +168,7 @@ if __name__ == '__main__':
     parser.add_argument('--start_iepoch', type=int)
     parser.add_argument('--end_iepoch', type=int)
     parser.add_argument('--network_id', type=str)
+    parser.add_argument('--device', type=str, default=None)
 
     parser.add_argument('--dataset', type=str, default='cifar10')
     parser.add_argument('--save_path', type=str)
@@ -179,4 +179,8 @@ if __name__ == '__main__':
     log_format = '%(asctime)s %(message)s'
     logging.basicConfig(stream=sys.stdout, level=logging.INFO, format=log_format, datefmt='%m/%d %I:%M:%S %p')
 
+    if args.device is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    else:
+        device = args.device
     run(args)

@@ -3,10 +3,11 @@ from torch.autograd import Variable
 import torch
 import torch.nn as nn
 
-def drop_path(x, drop_prob):
+def drop_path(x, drop_prob, device):
     if drop_prob > 0.:
         keep_prob = 1. - drop_prob
-        mask = Variable(torch.cuda.FloatTensor(x.size(0), 1, 1, 1).bernoulli_(keep_prob))
+        # mask = Variable(torch.cuda.FloatTensor(x.size(0), 1, 1, 1).bernoulli_(keep_prob))
+        mask = torch.FloatTensor(x.size(0), 1, 1, 1).bernoulli_(keep_prob).to(device)
         # mask = Variable(torch.tensor(x.size(0), 1, 1, 1, dtype=torch.float, device='cuda').bernoulli_(keep_prob))
         x.div_(keep_prob)
         x.mul_(mask)
@@ -14,7 +15,7 @@ def drop_path(x, drop_prob):
 
 class Cell(nn.Module):
 
-    def __init__(self, genotype, C_prev_prev, C_prev, C, reduction, reduction_prev):
+    def __init__(self, genotype, C_prev_prev, C_prev, C, reduction, reduction_prev, **kwargs):
         super(Cell, self).__init__()
         # print(C_prev_prev, C_prev, C)
 
@@ -31,6 +32,7 @@ class Cell(nn.Module):
             op_names, indices = zip(*genotype.normal)
             concat = genotype.normal_concat
         self._compile(C, op_names, indices, concat, reduction)
+        self.device = kwargs['device']
 
     def _compile(self, C, op_names, indices, concat, reduction):
         assert len(op_names) == len(indices)
@@ -59,9 +61,9 @@ class Cell(nn.Module):
             h2 = op2(h2)
             if self.training and drop_prob > 0.:
                 if not isinstance(op1, Identity):
-                    h1 = drop_path(h1, drop_prob)
+                    h1 = drop_path(h1, drop_prob, self.device)
                 if not isinstance(op2, Identity):
-                    h2 = drop_path(h2, drop_prob)
+                    h2 = drop_path(h2, drop_prob, self.device)
             s = h1 + h2
             states += [s]
         return torch.cat([states[i] for i in self._concat], dim=1)
@@ -117,7 +119,7 @@ class AuxiliaryHeadImageNet(nn.Module):
 
 class NetworkCIFAR(nn.Module):
 
-    def __init__(self, C, num_classes, layers, auxiliary, genotype):
+    def __init__(self, C, num_classes, layers, auxiliary, genotype, device):
         super(NetworkCIFAR, self).__init__()
         self._layers = layers
         self._auxiliary = auxiliary
@@ -139,7 +141,7 @@ class NetworkCIFAR(nn.Module):
                 reduction = True
             else:
                 reduction = False
-            cell = Cell(genotype, C_prev_prev, C_prev, C_curr, reduction, reduction_prev)
+            cell = Cell(genotype, C_prev_prev, C_prev, C_curr, reduction, reduction_prev, device=device)
             reduction_prev = reduction
             self.cells += [cell]
             C_prev_prev, C_prev = C_prev, cell.multiplier * C_curr
