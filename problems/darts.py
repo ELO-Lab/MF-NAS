@@ -10,6 +10,8 @@ import pathlib
 from zc_predictors.core import ZeroCost
 from zc_predictors.utils import get_config_for_zc_predictor
 import pickle as p
+from utils import get_gpu_memory
+
 root = pathlib.Path(__file__).parent.parent
 
 METRICS = ['epe_nas', 'fisher', 'flops', 'grad_norm', 'grasp', 'jacov', 'l2_norm', 'nwot', 'params', 'plain', 'snip',
@@ -21,11 +23,12 @@ class DARTS(Problem):
         self.dataset = dataset
         self.save_path = kwargs['save_path']
         self.n_models_per_train = kwargs['n_models_per_train']
-        self.using_ray = kwargs['using_ray']
+        # self.using_ray = kwargs['using_ray']
+        self.max_epoch = kwargs['max_epoch']
 
-        if self.using_ray:
-            import ray
-            ray.init(_temp_dir=f'{root}/exp')
+        # if self.using_ray:
+        #     import ray
+        #     ray.init(_temp_dir=f'{root}/exp')
 
         _ = torchvision.datasets.CIFAR10(root=f'{root}/dataset/cifar10', train=True, download=True)
         _ = torchvision.datasets.CIFAR10(root=f'{root}/dataset/cifar10', train=False, download=True)
@@ -52,10 +55,12 @@ class DARTS(Problem):
 
     def zc_evaluate(self, network, **kwargs):
         metric = kwargs['metric']
-        model = self.search_space.get_model(network.genotype, auxiliary=False)
+        # model = self.search_space.get_model(network.genotype, auxiliary=False)
+        model = self.search_space.get_model(network.genotype, search=False)
 
         s = time.time()
         if isinstance(metric, list):
+            _metric = metric.copy()
             try:
                 metric.remove('flops')
                 metric.remove('params')
@@ -65,7 +70,9 @@ class DARTS(Problem):
             predicted_scores = self.zc_predictor.query(model, metric)
             for metric, value in predicted_scores.items():
                 list_scores[metric] = value
-            flops, params = get_model_infos(model, shape=(1, 3, 32, 32))  # Params in MB
+            flops, params = -100000, -100000
+            if 'flops' in _metric or 'params' in _metric:
+                flops, params = get_model_infos(model, shape=(1, 3, 32, 32))  # Params in MB
             list_scores['flops'] = flops
             list_scores['params'] = params
             X = np.array([list(list_scores.values())])
@@ -87,18 +94,33 @@ class DARTS(Problem):
     def _parallel_train(self, list_network, **kwargs):
         start_iepoch = list_network[-1].info['cur_iepoch'][-1]
         end_iepoch = kwargs['end_iepoch']
+        max_epoch = self.max_epoch
         total_epoch = 0
         s = time.time()
 
-        for i in range(0, len(list_network), self.n_models_per_train):
-            _list_network = list_network[i:i + self.n_models_per_train]
+        total_network = len(list_network)
+        i = 0
+        while total_network > 0:
+            free_memory = get_gpu_memory()
+            estimated_gpu_each_subprocess = 3096
+            n_available_process_each_gpu = free_memory // estimated_gpu_each_subprocess
+            n_models_per_train = min(sum(n_available_process_each_gpu), self.n_models_per_train)
+            print(free_memory, n_available_process_each_gpu)
+            print('# Training Models:', n_models_per_train)
+
+            # for i in range(0, len(list_network), self.n_models_per_train):
+            #     _list_network = list_network[i:i + self.n_models_per_train]
+            _list_network = list_network[i:i + n_models_per_train]
             for network in _list_network:
                 total_epoch += (end_iepoch - start_iepoch)
                 network_id = ''.join(list(map(str, network.genotype)))
-                if self.using_ray:
-                    script = f"python train_darts_ray.py --seed {kwargs['algo'].seed} --save_path {self.save_path} --network_id {network_id} --dataset {self.dataset} --start_iepoch {start_iepoch} --end_iepoch {end_iepoch} | tee -a {self.save_path}/log_{network_id}_{start_iepoch}_{end_iepoch}.txt &"
-                else:
-                    script = f"python train_darts.py --seed {kwargs['algo'].seed} --save_path {self.save_path} --network_id {network_id} --dataset {self.dataset} --start_iepoch {start_iepoch} --end_iepoch {end_iepoch} | tee -a {self.save_path}/log_{network_id}_{start_iepoch}_{end_iepoch}.txt &"
+                # if self.using_ray:
+                #     script = f"python train_darts_ray.py --seed {kwargs['algo'].seed} --save_path {self.save_path} --network_id {network_id} --dataset {self.dataset} --start_iepoch {start_iepoch} --end_iepoch {end_iepoch} | tee -a {self.save_path}/log_{network_id}_{start_iepoch}_{end_iepoch}.txt &"
+                # else:
+                # Select GPU for training
+                gpu_id = select_gpu(n_available_process_each_gpu)
+                script = f"python train_darts.py --seed {kwargs['algo'].seed} --max_epoch {max_epoch} --device cuda:{gpu_id} --save_path {self.save_path} --network_id {network_id} --dataset {self.dataset} --start_iepoch {start_iepoch} --end_iepoch {end_iepoch} | tee -a {self.save_path}/log_{network_id}_{start_iepoch}_{end_iepoch}.txt &"
+                n_available_process_each_gpu[gpu_id] -= 1
                 os.system(script)
             while True:
                 done = True
@@ -117,9 +139,14 @@ class DARTS(Problem):
                 network.score = train_status['score']
                 network.info['cur_iepoch'].append(end_iepoch)
                 os.remove(f'{self.save_path}/{network_id}/status.json')
+            i += n_models_per_train
+            total_network -= n_models_per_train
         total_time = time.time() - s
         return total_time, total_epoch
 
     def get_test_performance(self, network, **kwargs):
         print('This is the validation performance. To achieve the test performance, you need to train from scratch.')
         return network.score
+
+def select_gpu(n_available_process_each_gpu):
+    return np.argmax(n_available_process_each_gpu)

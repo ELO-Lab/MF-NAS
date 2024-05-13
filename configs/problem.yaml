@@ -30,8 +30,8 @@ darts:
     n_models_per_train: 32
     using_ray: False
 
+    max_epoch: 600
     drop_path_prob: 0.3
-    max_epochs: 100
     learning_rate: 0.025
     momentum: 0.9
     weight_decay: 0.0003
