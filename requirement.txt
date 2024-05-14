@@ -1,7 +1,7 @@
 numpy
 tqdm
 gdown
-ray
-# torch
-# torchvision
-# torchaudio
+fvcore
+torch
+torchvision
+torchaudio

@@ -65,6 +65,9 @@ class SS_PTB_DARTS(SearchSpace):
         for i in range(0, 16, 4):
             if encode_network[i+1] == encode_network[i+3]:
                 return False
+        for i, j in enumerate(range(0, 16, 2)):
+            if encode_network[j+1] > i:
+                return False
         return True
 
     def get_model(self, genotype, search=True):
@@ -100,15 +103,46 @@ class SS_PTB_DARTS(SearchSpace):
 if __name__ == '__main__':
     np.random.seed(0)
     ss = SS_PTB_DARTS()
-    genotype = ss.sample(True)
+    genotype = None
+    while True:
+        genotype = ss.sample(True)
+        if ss.is_valid(genotype):
+            break
+    print(genotype)
     model = ss.get_model(genotype, True)
-    print(model)
-    size = 0
-    for p in model.parameters():
-        size += p.nelement()
-    print('param size: {}'.format(size))
-    print('initial genotype:')
-    print(model.rnns[0].genotype)
+    # print(model)
+    # print(ss.categories)
+    for layer in model.modules():
+        print(type(layer))
+
+
+    # Hidden state scores
+    def hidden_scores(hiddens):
+        metric_array = []
+        for hidden in hidden_states:
+            if hidden.grad is not None:
+                metric_array.append(torch.abs(hidden * hidden.grad))
+            else:
+                metric_array.append(torch.zeros_like(hidden))
+        sum = 0.0
+        for i in range(len(metric_array)):
+            sum += torch.nansum(metric_array[i])
+
+        hidden_state1 = torch.dstack([i.detach() for i in hidden_states[:70]])
+        hidden_state2 = torch.dstack([i.detach() for i in hidden_states[70:140]])
+        hidden_state3 = torch.dstack([i.detach() for i in hidden_states[-70:]])
+
+        return [
+            sum.detach().item(),
+            jacobian_score(hidden_state1),
+            jacobian_score(hidden_state2),
+            jacobian_score(hidden_state3),
+        ]
+    # size = 0
+    # for p in model.parameters():
+    #     size += p.nelement()
+    # print('param size: {}'.format(size))
+    # print(ss.is_valid(np.array([3, 0, 4, 1, 4, 1, 4, 0, 2, 3, 2, 0, 4, 0, 1, 1])))
     # print(network)
     # genotype = ss.encode(network)
     # for i in range(16):
