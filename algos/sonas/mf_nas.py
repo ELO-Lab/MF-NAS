@@ -1,4 +1,5 @@
-from . import Algorithm, IteratedLocalSearch, RandomSearch, SuccessiveHalving
+from algos import Algorithm
+from algos.sonas import IteratedLocalSearch, RandomSearch, SuccessiveHalving
 import numpy as np
 import pathlib
 import pickle as p

@@ -47,6 +47,10 @@ def get_algorithm(name, config_file):
         algo = SuccessiveHalving()
     elif name == 'MF-NAS':
         algo = MF_NAS()
+    elif name == 'PLS':
+        algo = ParetoLocalSearch()
+    elif name == 'NSGA2':
+        algo = NSGA2()
     else:
         raise ValueError(f'Not support this algorithm: {name}')
     print(f'Algorithm: {name}')

@@ -38,6 +38,36 @@ class NB_201(Problem):
         self.zc_database = json.load(open(ROOT_DIR + f'/database/nb201/zc_database.json'))
         self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nb201/[{self.dataset}]_data.p', 'rb'))
 
+    def mo_evaluate(self, list_networks, list_metrics, **kwargs):
+        max_time = kwargs['max_time']
+        need_trained = kwargs['need_trained']
+        cur_total_time = kwargs['cur_total_time']
+        TOTAL_TIME, TOTAL_EPOCHS = 0.0, 0
+        if not isinstance(list_networks, list) and not isinstance(list_networks, np.ndarray):
+            list_networks = [list_networks]
+        for network in list_networks:
+            scores = {}
+            train_time, train_epoch = 0.0, 0.0
+            for i, metric in enumerate(list_metrics):
+                _train_time, _train_epoch = self._evaluate(network, not need_trained[i], metric)
+                train_time += _train_time
+                train_epoch += _train_epoch
+
+                if 'flops' in metric or 'params' in metric or 'loss' in metric:
+                    scores[metric] = network.score
+                else:
+                    if 'acc' in metric:
+                        scores[metric] = 1 - network.score
+                    else:
+                        scores[metric] = -network.score
+                    # print(metric, scores[metric])
+            network.score = np.round([scores[metric] for metric in list_metrics], 4)
+            if cur_total_time + TOTAL_TIME + train_time > max_time:
+                return TOTAL_TIME, TOTAL_EPOCHS, True
+            TOTAL_TIME += train_time
+            TOTAL_EPOCHS += train_epoch
+        return TOTAL_TIME, TOTAL_EPOCHS, False
+
     def evaluate(self, networks, **kwargs):
         max_time = kwargs['max_time']
         cur_total_time = kwargs['cur_total_time']

@@ -1,9 +1,9 @@
-from . import Algorithm
+from algos import Algorithm
 from models import Network
 from copy import deepcopy
 import numpy as np
 import math
-from .utils import sampling_solution
+from algos.utils import sampling_solution
 
 class SuccessiveHalving(Algorithm):
     def __init__(self):

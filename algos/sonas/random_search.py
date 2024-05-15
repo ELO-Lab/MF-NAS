@@ -1,7 +1,7 @@
-from . import Algorithm
+from algos import Algorithm
 from models import Network
 from copy import deepcopy
-from .utils import sampling_solution, update_log
+from algos.utils import sampling_solution, update_log
 import numpy as np
 
 class RandomSearch(Algorithm):
