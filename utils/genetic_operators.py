@@ -2,16 +2,7 @@ import numpy as np
 from models import Network
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 from pymoo.util.randomized_argsort import randomized_argsort
-
-def not_existed(genotypeHash: str, **kwargs) -> bool:
-    """
-    Takes in the fingerprint of a solution and a set of checklists.
-    Return True if the current solution have not existed on the set of checklists.
-
-    :param genotypeHash: the fingerprint of the considering solution
-    :return: True or False
-    """
-    return np.all([genotypeHash not in kwargs[L] for L in kwargs])
+from algos.utils import not_existed
 
 ############################## NON-DOMINATED SORTING RANK AND CROWING DISTANCE SELECTION ##############################
 class RankAndCrowdingSurvival:
@@ -21,8 +12,7 @@ class RankAndCrowdingSurvival:
     @staticmethod
     def do(pop, n_survive):
         # get the objective space values and objects
-        F = pop.get('score')
-
+        F = np.array([network.get('score') for network in pop])
         # the final indices of surviving individuals
         survivors = []
 
@@ -50,7 +40,8 @@ class RankAndCrowdingSurvival:
 
             # extend the survivors by all or selected individuals
             survivors.extend(front[I])
-        return pop[survivors]
+        pop = np.array(pop)
+        return pop[survivors].tolist()
 
 
 def calculating_crowding_distance(F):
@@ -104,7 +95,7 @@ class BitStringMutation:
     def __init__(self, prob=1.0):
         self.prob = prob
 
-    def mutation(self, problem, P, O, **kwargs):
+    def do(self, problem, P, O, **kwargs):
         P_hashes = [''.join(map(str, network.genotype)) for network in P]
         current_O_genotypes = np.array([network.genotype for network in P])
 
@@ -156,7 +147,7 @@ class PointCrossover:
             self.method = method
         self.prob = prob
 
-    def _do(self, problem, parents_pool, P, **kwargs):
+    def do(self, problem, parents_pool, P, **kwargs):
         offspring_size = len(parents_pool)
         O = []
         O_hashes = []
@@ -214,10 +205,3 @@ def crossover(parent_1, parent_2, typeC, **kwargs):
         offspring_1[pts], offspring_2[pts] = offspring_2[pts], offspring_1[pts].copy()
 
     return [offspring_1, offspring_2]
-
-if __name__ == '__main__':
-    x = crossover([0, 1, 2, 0, 1], [1, 3, 2, 0, 1], '2X')
-    print(x)
-
-    x = [True, False, True]
-    print(not x[0])

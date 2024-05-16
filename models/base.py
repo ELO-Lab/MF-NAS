@@ -21,3 +21,6 @@ class Network:
         if key in self.info:
             return self.info[key]
         return None
+
+    def __call__(self):
+        print('Genotype:', self.genotype, 'Score:', self.score)

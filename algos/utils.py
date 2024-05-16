@@ -44,6 +44,16 @@ def compare_f1_f2(f1: ndarray, f2: ndarray) -> int:
         return 1
     return 0  # True - False
 
+def not_existed(genotypeHash: str, **kwargs) -> bool:
+    """
+    Takes in the fingerprint of a solution and a set of checklists.
+    Return True if the current solution have not existed on the set of checklists.
+
+    :param genotypeHash: the fingerprint of the considering solution
+    :return: True or False
+    """
+    return np.all([genotypeHash not in kwargs[L] for L in kwargs])
+
 class ElitistArchive:
     """
         Note: No limit the size

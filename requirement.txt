@@ -1,3 +1,4 @@
+pymoo
 numpy
 tqdm
 gdown

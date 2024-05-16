@@ -7,7 +7,7 @@ from utils.genetic_operators import PointCrossover, BitStringMutation, RankAndCr
 
 class NSGA2(Algorithm):
     def __init__(self):
-        super().__init__()
+        super().__init__(nas_type='mo')
         self.pop = []
         self.pop_size = 0
         self.n_gen = 0
@@ -31,12 +31,14 @@ class NSGA2(Algorithm):
 
     def _run(self, **kwargs):
         self._reset()
+        self.get_genetic_operators()
+
         max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
         max_time = self.problem.max_time if self.max_time is None else self.max_time
         list_metrics = []
         for i in range(len(self.need_trained)):
             if self.need_trained[i]:
-                list_metrics.append(self.list_metrics[i] + f'_{self.list_iepochs}')
+                list_metrics.append(self.list_metrics[i] + f'_{self.list_iepochs[i]}')
             else:
                 list_metrics.append(self.list_metrics[i])
         approximation_set = self.search(max_eval=max_eval, max_time=max_time, list_metrics=list_metrics, **kwargs)
@@ -46,13 +48,16 @@ class NSGA2(Algorithm):
         max_eval = kwargs['max_eval']
         max_time = kwargs['max_time']
         list_metrics = kwargs['list_metrics']
-        self._initialize(list_metrics=list_metrics, max_time=max_time)
+        is_terminated = self._initialize(list_metrics=list_metrics, max_time=max_time)
+        if is_terminated:
+            return self.archive
 
         self.pop = self.survival.do(self.pop, self.pop_size)
-
         while (self.n_eval <= max_eval) and (self.total_time <= max_time):
             self.n_gen += 1
-            self._next(self.pop, list_metrics=list_metrics, max_time=max_time)
+            is_terminated = self._next(self.pop, list_metrics=list_metrics, max_time=max_time)
+            if is_terminated:
+                break
         return self.archive
 
     def _initialize(self, **kwargs):
@@ -64,18 +69,19 @@ class NSGA2(Algorithm):
             network_hash = ''.join(map(str, network.genotype))
             if network_hash not in pop_hashes:
                 pop_hashes.append(network_hash)
-                train_time, train_epoch, _ = self.problem.mo_evaluate(list_networks=[network],
-                                                                      list_metrics=list_metrics,
-                                                                      need_trained=self.need_trained,
-                                                                      cur_total_time=self.total_time,
-                                                                      max_time=max_time)
+                train_time, train_epoch, is_terminated = self.problem.mo_evaluate(list_networks=[network],
+                                                                                  list_metrics=list_metrics,
+                                                                                  need_trained=self.need_trained,
+                                                                                  cur_total_time=self.total_time,
+                                                                                  max_time=max_time)
                 self.archive.update(network)
                 self.n_eval += 1
                 self.total_time += train_time
                 self.total_epoch += train_epoch
+                self.pop.append(network)
                 n += 1
-                if n == self.pop_size:
-                    break
+                if n == self.pop_size or is_terminated:
+                    return is_terminated
 
     def _mating(self, P, **kwargs):
         # Selection
@@ -99,18 +105,21 @@ class NSGA2(Algorithm):
 
         offsprings = self._mating(pop)
         for network in offsprings:
-            train_time, train_epoch, _ = self.problem.mo_evaluate(list_networks=[network],
-                                                                  list_metrics=list_metrics,
-                                                                  need_trained=self.need_trained,
-                                                                  cur_total_time=self.total_time,
-                                                                  max_time=max_time)
+            train_time, train_epoch, is_terminated = self.problem.mo_evaluate(list_networks=[network],
+                                                                              list_metrics=list_metrics,
+                                                                              need_trained=self.need_trained,
+                                                                              cur_total_time=self.total_time,
+                                                                              max_time=max_time)
+            if is_terminated:
+                return True
             self.archive.update(network)
             self.n_eval += 1
             self.total_time += train_time
             self.total_epoch += train_epoch
 
-        pool = pop.merge(offsprings)
+        pool = pop + offsprings
         self.pop = self.survival.do(pool, self.pop_size)
+        return False
 
 def compare(idv_1, idv_2):
     rank_1, rank_2 = idv_1.get('rank'), idv_2.get('rank')

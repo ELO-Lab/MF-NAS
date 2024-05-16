@@ -20,8 +20,8 @@ def run(kwargs):
     if '201' in search_space:
         search_space += f'_{dataset}'
     res_path = f'{root}/exp/{opt_name}_{search_space}_' + dt_string
-    os.mkdir(res_path)
-    os.mkdir(res_path + '/results')
+    os.makedirs(res_path, exist_ok=True)
+    os.makedirs(res_path + '/results', exist_ok=True)
 
     problem, info_problem = get_problem(search_space, res_path=res_path + '/results')
 
@@ -30,40 +30,24 @@ def run(kwargs):
     opt.adapt(problem)
 
     n_run = kwargs.n_run
-    verbose = kwargs.verbose
-    trend_performance, trend_search_cost, trend_total_epoch = [], [], []
+    trend_search_cost, trend_total_epoch = [], []
 
-    os.mkdir(res_path + '/configs')
+    os.makedirs(res_path + '/configs', exist_ok=True)
     json.dump(info_problem, open(res_path + '/configs/info_problem.json', 'w'), indent=4)
     json.dump(info_algo, open(res_path + '/configs/info_algo.json', 'w'), indent=4)
 
     init_seed = args.init_seed
     for run_id in range(1, n_run + 1):
-        network, search_cost, total_epoch = opt.run(seed=init_seed + run_id)
-        test_performance = problem.get_test_performance(network)
-        if verbose:
-            network_phenotype = problem.search_space.decode(network.genotype)
-            print()
-            print(f'- RunID: {run_id}\n')
-            print(f'  + Best architecture found:\n{network_phenotype}\n')
-            print(f'  + Performance: {test_performance} %')
-            print(f'  + Search cost (in seconds): {search_cost}')
-            print(f'  + Search cost (in epochs): {total_epoch}\n')
-            print('-' * 100)
-        trend_performance.append(test_performance)
+        search_result, search_cost, total_epoch = opt.run(seed=init_seed + run_id)
+        p.dump([search_result, int(search_cost), int(total_epoch)], open(res_path + f'/results/run_{run_id}_results.p', 'wb'))
+        print(f'- RunID: {run_id}')
+        print(f'  + Search cost (in seconds): {int(search_cost)}')
+        print(f'  + Search cost (in epochs): {int(total_epoch)}')
+        print('-' * 100, '\n')
         trend_search_cost.append(search_cost)
         trend_total_epoch.append(total_epoch)
-        info_results = {
-            'Genotype': network.genotype,
-            'Phenotype': problem.search_space.decode(network.genotype),
-            'Performance': test_performance,
-            'Search cost (in seconds)': search_cost,
-            'Search cost (in epochs)': total_epoch,
-        }
-        p.dump(info_results, open(res_path + f'/results/run_{run_id}_results.p', 'wb'))
-    print(f'- Mean: {np.round(np.mean(trend_performance), 2)} \t Std: {np.round(np.std(trend_performance), 2)}')
-    print(f'- Search cost (in seconds): {np.round(np.mean(trend_search_cost))}')
-    print(f'- Search cost (in epochs): {np.round(np.mean(trend_total_epoch))}')
+    print(f'- Average Search Cost (in seconds): {np.round(np.mean(trend_search_cost))}')
+    print(f'- Average Search Cost (in epochs): {np.round(np.mean(trend_total_epoch))}')
     print('=' * 100)
 
 if __name__ == '__main__':
@@ -77,13 +61,12 @@ if __name__ == '__main__':
 
     ''' ALGORITHM '''
     parser.add_argument('--optimizer', type=str, default='MF-NAS', help='the search strategy',
-    choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'REA+W', 'MF-NAS'])
+    choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'REA+W', 'MF-NAS', 'PLS', 'NSGA2'])
     parser.add_argument('--config_file', type=str, default='./configs/algo_201.yaml', help='the configuration file')
 
     ''' ENVIRONMENT '''
     parser.add_argument('--n_run', type=int, default=500, help='number of experiment runs')
     parser.add_argument('--init_seed', type=int, default=0, help='initial random seed')
-    parser.add_argument('--verbose', action='store_true')
 
     args = parser.parse_args()
 

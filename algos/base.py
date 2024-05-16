@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from utils import set_seed
 
 class Algorithm(ABC):
-    def __init__(self):
+    def __init__(self, nas_type='so'):
         self.problem = None
         self.max_eval, self.max_time = None, None
 
@@ -13,6 +13,8 @@ class Algorithm(ABC):
         self.n_eval = 0
         self.total_time, self.total_epoch = 0.0, 0.0
         self.seed = 0
+
+        self.nas_type = nas_type
 
     def reset(self):
         self.n_eval = 0

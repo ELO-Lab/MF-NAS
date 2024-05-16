@@ -6,7 +6,7 @@ from algos.utils import sampling_solution, compare_f1_f2, ElitistArchive
 
 class ParetoLocalSearch(Algorithm):
     def __init__(self):
-        super().__init__()
+        super().__init__(nas_type='mo')
         self.trend_best_network = []
         self.trend_time = []
         self.network_history = []
@@ -29,7 +29,7 @@ class ParetoLocalSearch(Algorithm):
         list_metrics = []
         for i in range(len(self.need_trained)):
             if self.need_trained[i]:
-                list_metrics.append(self.list_metrics[i] + f'_{self.list_iepochs}')
+                list_metrics.append(self.list_metrics[i] + f'_{self.list_iepochs[i]}')
             else:
                 list_metrics.append(self.list_metrics[i])
         approximation_set = self.search(max_eval=max_eval, max_time=max_time, list_metrics=list_metrics, **kwargs)
@@ -147,6 +147,5 @@ def is_dominated(x, Y):
 def check_Valid(x, X):
     hashKey_list = [''.join(map(str, x_.genotype)) for x_ in X]
     hashKey_x = ''.join(map(str, x.genotype))
-    # print(hashKey_x, hashKey_list)
     if hashKey_x not in hashKey_list:
         return True
