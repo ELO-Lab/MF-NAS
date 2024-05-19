@@ -67,6 +67,9 @@ class ElitistArchive:
             self.update(solution)
         return self
 
+    def update_without_check(self, solution):
+        self.archive.append(solution)
+
     def update(self, solution, **kwargs):
         length = len(self.archive)
         notDominated = np.ones(length).astype(bool)

@@ -18,7 +18,7 @@ def get_problem(name, **kwargs):
     print_info(info_problem)
 
     if '201' in name:
-        return NB_201(max_eval, max_time, dataset), info_problem
+        return NB_201(max_eval, max_time, dataset, mo_objective=configs['mo_objective']), info_problem
     elif name == 'nb101':
         return NB_101(max_eval, max_time, dataset), info_problem
     elif name == 'nbasr':
@@ -51,6 +51,10 @@ def get_algorithm(name, config_file):
         algo = ParetoLocalSearch()
     elif name == 'NSGA2':
         algo = NSGA2()
+    elif name == 'MOSH':
+        algo = MultiObjective_SuccessiveHalving()
+    elif name == 'MOF-NAS':
+        algo = MOF_NAS()
     else:
         raise ValueError(f'Not support this algorithm: {name}')
     print(f'Algorithm: {name}')

@@ -10,7 +10,6 @@ class ParetoLocalSearch(Algorithm):
         self.trend_best_network = []
         self.trend_time = []
         self.network_history = []
-        self.score_history = []
         self.archive = ElitistArchive()
 
         self.list_metrics, self.list_iepochs, self.need_trained = [], [], []
@@ -19,26 +18,28 @@ class ParetoLocalSearch(Algorithm):
         self.trend_best_network = []
         self.trend_time = []
         self.network_history = []
-        self.score_history = []
         self.archive = ElitistArchive()
 
-    def _run(self, **kwargs):
-        self._reset()
-        max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
-        max_time = self.problem.max_time if self.max_time is None else self.max_time
+    def reformat_list_metrics(self):
         list_metrics = []
         for i in range(len(self.need_trained)):
             if self.need_trained[i]:
                 list_metrics.append(self.list_metrics[i] + f'_{self.list_iepochs[i]}')
             else:
                 list_metrics.append(self.list_metrics[i])
-        approximation_set = self.search(max_eval=max_eval, max_time=max_time, list_metrics=list_metrics, **kwargs)
+        return list_metrics
+
+    def _run(self, **kwargs):
+        self._reset()
+        max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
+        max_time = self.problem.max_time if self.max_time is None else self.max_time
+        approximation_set = self.search(max_eval=max_eval, max_time=max_time, **kwargs)
         return approximation_set, self.total_time, self.total_epoch
 
     def search(self, **kwargs):
         max_eval = kwargs['max_eval']
         max_time = kwargs['max_time']
-        list_metrics = kwargs['list_metrics']
+        list_metrics = self.reformat_list_metrics()
 
         while (self.n_eval <= max_eval) and (self.total_time <= max_time):
             init_network = sampling_solution(self.problem)
@@ -52,9 +53,8 @@ class ParetoLocalSearch(Algorithm):
             self.n_eval += 1
             self.total_time += train_time
             self.total_epoch += train_epoch
-            # init_network()
 
-            if is_terminated:
+            if is_terminated or self.n_eval >= max_eval:
                 return self.archive
 
             F = [init_network]
@@ -82,9 +82,8 @@ class ParetoLocalSearch(Algorithm):
                     self.n_eval += 1
                     self.total_time += train_time
                     self.total_epoch += train_epoch
-                    # neighbor()
 
-                    if is_terminated:
+                    if is_terminated or self.n_eval >= max_eval:
                         return self.archive
 
                     if (not is_dominated(neighbor, W)) and (not is_dominated(neighbor, F)) and (not is_dominated(neighbor, X_PLO_NF)):

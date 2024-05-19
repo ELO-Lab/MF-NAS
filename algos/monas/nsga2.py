@@ -55,7 +55,7 @@ class NSGA2(Algorithm):
         self.pop = self.survival.do(self.pop, self.pop_size)
         while (self.n_eval <= max_eval) and (self.total_time <= max_time):
             self.n_gen += 1
-            is_terminated = self._next(self.pop, list_metrics=list_metrics, max_time=max_time)
+            is_terminated = self._next(self.pop, list_metrics=list_metrics, max_time=max_time, max_eval=max_eval)
             if is_terminated:
                 break
         return self.archive
@@ -101,7 +101,7 @@ class NSGA2(Algorithm):
         + Create the offspring.
         + Select the new population.
         """
-        list_metrics, max_time = kwargs['list_metrics'], kwargs['max_time']
+        list_metrics, max_time, max_eval = kwargs['list_metrics'], kwargs['max_time'], kwargs['max_eval']
 
         offsprings = self._mating(pop)
         for network in offsprings:
@@ -110,12 +110,13 @@ class NSGA2(Algorithm):
                                                                               need_trained=self.need_trained,
                                                                               cur_total_time=self.total_time,
                                                                               max_time=max_time)
-            if is_terminated:
-                return True
             self.archive.update(network)
             self.n_eval += 1
             self.total_time += train_time
             self.total_epoch += train_epoch
+
+            if is_terminated or self.n_eval >= max_eval:
+                return True
 
         pool = pop + offsprings
         self.pop = self.survival.do(pool, self.pop_size)
