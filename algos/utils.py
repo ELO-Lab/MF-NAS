@@ -119,3 +119,7 @@ class ElitistArchive:
         if np.any(checklist == 'non'):
             return False
         return True
+
+class Footprint:
+    def __init__(self):
+        self.data = {}

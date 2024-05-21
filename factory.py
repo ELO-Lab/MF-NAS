@@ -20,7 +20,7 @@ def get_problem(name, **kwargs):
     if '201' in name:
         return NB_201(max_eval, max_time, dataset, mo_objective=configs['mo_objective']), info_problem
     elif name == 'nb101':
-        return NB_101(max_eval, max_time, dataset), info_problem
+        return NB_101(max_eval, max_time, dataset, mo_objective=configs['mo_objective']), info_problem
     elif name == 'nbasr':
         return NB_ASR(max_eval, max_time, dataset), info_problem
     elif name == 'darts':
@@ -53,6 +53,8 @@ def get_algorithm(name, config_file):
         algo = NSGA2()
     elif name == 'MOSH':
         algo = MultiObjective_SuccessiveHalving()
+    elif name == 'LOMONAS':
+        algo = LOMONAS()
     elif name == 'MOF-NAS':
         algo = MOF_NAS()
     else:

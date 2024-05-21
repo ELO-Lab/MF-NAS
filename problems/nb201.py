@@ -4,8 +4,8 @@ import json
 import numpy as np
 import pickle as p
 import os
-import math
 from pymoo.indicators.hv import HV
+from problems.utils import get_ref_point
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__)).split('/')
 ROOT_DIR = '/'.join(ROOT_DIR[:-1])
@@ -191,20 +191,3 @@ class NB_201(Problem):
         hv_cal = HV(ref_point)
         hv_value = hv_cal(F)
         return hv_value
-
-def nCr(n, r):
-    f = math.factorial
-    return f(n) // f(r) // f(n-r)
-
-def define_H(n_obj, n_sol):
-    H = 0
-    while True:
-        H += 1
-        if nCr(H + n_obj - 1, n_obj - 1) > n_sol:
-            return H - 1
-
-def get_ref_point(n_obj, pof):
-    H = define_H(n_obj, len(pof))
-    r = np.ones(n_obj)
-    r = r + 1 / H
-    return r

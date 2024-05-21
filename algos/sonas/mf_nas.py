@@ -57,7 +57,7 @@ class MF_NAS(Algorithm):
         if self.problem.search_space.name == 'NB-101':
             h_history_stage1 = []
             for network in network_history_stage1:
-                h = self.problem.get_h(network.genotype)
+                h = self.problem.get_hash(network)
                 h_history_stage1.append(h)
             _, I = np.unique(h_history_stage1, return_index=True)
 

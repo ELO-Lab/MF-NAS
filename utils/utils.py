@@ -4,23 +4,23 @@ import torch
 import subprocess as sp
 import os
 
-def create_result_folder(nas_type, root, opt_name, search_space, opt):
+def create_result_folder(nas_type, opt_name, search_space, opt, save_path):
     if nas_type == 'so':
         if opt_name == 'MF-NAS':
-            res_path = f'{root}/exp/{opt_name}_{search_space}_{opt.metric_stage1}_{opt.max_eval_stage1}_{opt.metric_stage2}_{opt.n_candidate}'
+            res_path = f'{save_path}/{opt_name}_{search_space}_{opt.metric_stage1}_{opt.max_eval_stage1}_{opt.metric_stage2}_{opt.n_candidate}'
         else:
             if opt.using_zc_metric:
-                res_path = f'{root}/exp/{opt_name}_{search_space}_{opt.metric}'
+                res_path = f'{save_path}/{opt_name}_{search_space}_{opt.metric}'
             else:
-                res_path = f'{root}/exp/{opt_name}_{search_space}_{opt.metric}{opt.iepoch}'
+                res_path = f'{save_path}/{opt_name}_{search_space}_{opt.metric}{opt.iepoch}'
     else:
         if opt_name == 'MOF-NAS':
             metrics_stage1 = '&'.join(opt.list_metrics_stage1)
             metrics_stage2 = '&'.join(opt.list_metrics_stage2)
-            res_path = f'{root}/exp/{opt_name}_{search_space}_{metrics_stage1}_{opt.max_eval_stage1}_{metrics_stage2}_{opt.n_candidate}'
+            res_path = f'{save_path}/{opt_name}_{search_space}_{metrics_stage1}_{opt.max_eval_stage1}_{metrics_stage2}_{opt.n_candidate}'
         else:
             metrics = '&'.join(opt.list_metrics)
-            res_path = f'{root}/exp/{opt_name}_{search_space}_{metrics}'
+            res_path = f'{save_path}/{opt_name}_{search_space}_{metrics}'
     os.makedirs(res_path, exist_ok=True)
     return res_path
 
