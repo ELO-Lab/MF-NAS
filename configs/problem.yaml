@@ -1,27 +1,49 @@
 nb201_cifar10:
-    max_time: 20000
-    max_eval: 9999999999
+    max_time: 9999999999
+    max_eval: 3000
     dataset: cifar10
+    mo_objective: [err, flops]
 
 nb201_cifar100:
-    max_time: 40000
-    max_eval: 9999999999
+    max_time: 9999999999
+    max_eval: 3000
     dataset: cifar100
+    mo_objective: [err, flops]
 
 nb201_ImageNet16-120:
-    max_time: 120000
-    max_eval: 9999999999
+    max_time: 9999999999
+    max_eval: 3000
     dataset: ImageNet16-120
+    mo_objective: [err, flops]
 
 nb101:
-    max_time: 20000
+    max_time: 9999999999
     max_eval: 9999999999
     dataset: cifar10
+    mo_objective: [err, params]
 
 nbasr:
     max_time: 9999999999
     max_eval: 25
     dataset: TIMIT
+
+nats_cifar10:
+    max_time: 9999999999
+    max_eval: 3000
+    dataset: cifar10
+    mo_objective: [err, flops]
+
+nats_cifar100:
+    max_time: 9999999999
+    max_eval: 3000
+    dataset: cifar100
+    mo_objective: [err, flops]
+
+nats_ImageNet16-120:
+    max_time: 9999999999
+    max_eval: 3000
+    dataset: ImageNet16-120
+    mo_objective: [err, flops]
 
 darts:
     max_time: 9999999999

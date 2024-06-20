@@ -21,8 +21,10 @@ def get_problem(name, **kwargs):
         return NB_201(max_eval, max_time, dataset, mo_objective=configs['mo_objective']), info_problem
     elif name == 'nb101':
         return NB_101(max_eval, max_time, dataset, mo_objective=configs['mo_objective']), info_problem
+    elif 'nats' in name:
+        return NB_NATS(max_eval, max_time, dataset, mo_objective=configs['mo_objective']), info_problem
     elif name == 'nbasr':
-        return NB_ASR(max_eval, max_time, dataset), info_problem
+        return NB_ASR(max_eval, max_time, dataset, mo_objective=configs['mo_objective']), info_problem
     elif name == 'darts':
         return DARTS(max_eval, max_time, dataset, save_path=kwargs['res_path'],
                      n_models_per_train=configs['n_models_per_train'], using_ray=configs['using_ray'],

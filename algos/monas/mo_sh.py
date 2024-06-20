@@ -4,19 +4,23 @@ from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.preprocessing import MinMaxScaler
 
 from algos import Algorithm
-from algos.utils import sampling_solution, ElitistArchive
+from algos.utils import sampling_solution, ElitistArchive, get_idx_front_0
 
 
 class MultiObjective_SuccessiveHalving(Algorithm):
     def __init__(self):
-        super().__init__()
+        super().__init__(nas_type='mo')
         self.list_metrics = None
         self.list_iepochs = None
         self.need_trained = None
         self.n_remaining_candidates = None
         self.archive = ElitistArchive()
 
+    def _reset(self):
+        self.archive = ElitistArchive()
+
     def _run(self):
+        self._reset()
         assert self.list_metrics is not None
         assert len(self.list_iepochs[0]) is not None
 
@@ -54,21 +58,23 @@ class MultiObjective_SuccessiveHalving(Algorithm):
         n_remaining_candidates = self.n_remaining_candidates[1:]
         for i, _list_metrics in enumerate(list_metrics):
             evaluated_network = []
-
-            train_time, train_epoch, is_terminated = self.problem.mo_evaluate(list_network,
-                                                                              list_metrics=_list_metrics,
-                                                                              need_trained=self.need_trained,
-                                                                              cur_total_time=self.total_time,
-                                                                              max_time=max_time)
-            self.total_time += train_time
-            self.total_epoch += train_epoch
-
+            is_terminated = False
             for network in list_network:
-                evaluated_network.append(network)
+                train_time, train_epoch, is_terminated = self.problem.mo_evaluate([network],
+                                                                                list_metrics=_list_metrics,
+                                                                                need_trained=self.need_trained,
+                                                                                cur_total_time=self.total_time,
+                                                                                max_time=max_time)
+                self.total_time += train_time
+                self.total_epoch += train_epoch
+                if is_terminated:
+                    break
+                else:
+                    evaluated_network.append(network)
 
             iepoch = int(_list_metrics[0].split('_')[-1])
             if is_terminated or iepoch == self.list_iepochs[0][-1]:
-                for network in list_network:
+                for network in evaluated_network:
                     self.archive.update_without_check(network)
                 return self.archive
 
@@ -91,7 +97,34 @@ def selection(list_network, n_survive):
     return ids
 
 
+def proposed_selection(list_network, n_survive, n_selected_each_front):
+    F = np.array([network.score for network in list_network])
+    ids = np.arange(len(F))
+    selected_ids = []
+    while True:
+        # Get solutions on front-0
+        ids_fr0 = get_idx_front_0(F)
+        _ids = ids.copy()[ids_fr0]
+        F_fr0 = F.copy()[ids_fr0]
+
+        # Greedy select solutions on front-0
+        __ids = greedy_selection(F_fr0, n_survive=n_selected_each_front)
+        _ids = _ids[__ids].tolist()
+
+        selected_ids += _ids
+
+        ids = ids[~ids_fr0]
+        F = F[~ids_fr0]
+
+        if len(F) == 0 or len(selected_ids) >= n_survive:
+            break
+    np.random.shuffle(selected_ids)
+    return selected_ids[:n_survive]
+
+
 def greedy_selection(front, n_survive, **kwargs):
+    if n_survive == -1:
+        n_survive = len(front)
     F = front.copy()
     F = np.abs(F)
     scaler = MinMaxScaler()

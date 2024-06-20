@@ -18,6 +18,7 @@ class NSGA2(Algorithm):
         self.crossover, self.mutation, self.survival = None, None, None
 
         self.list_metrics, self.list_iepochs, self.need_trained = [], [], []
+        self.explored_networks = []
 
     def get_genetic_operators(self):
         self.crossover = PointCrossover(prob=self.prob_c, method=self.crossover_method)
@@ -28,6 +29,16 @@ class NSGA2(Algorithm):
         self.pop = []
         self.n_gen = 0
         self.archive = ElitistArchive()
+        self.explored_networks = []
+
+    def finalize(self, **kwargs):
+        try:
+            save_path = kwargs['save_path']
+            rid = kwargs['rid']
+            import pickle as p
+            p.dump(self.explored_networks, open(save_path + f'/explored_networks_run{rid}.p', 'wb'))
+        except KeyError:
+            pass
 
     def _run(self, **kwargs):
         self._reset()
@@ -66,7 +77,7 @@ class NSGA2(Algorithm):
         n = 0
         while True:
             network = sampling_solution(self.problem)
-            network_hash = ''.join(map(str, network.genotype))
+            network_hash = self.problem.get_hash(network)
             if network_hash not in pop_hashes:
                 pop_hashes.append(network_hash)
                 train_time, train_epoch, is_terminated = self.problem.mo_evaluate(list_networks=[network],
@@ -74,11 +85,12 @@ class NSGA2(Algorithm):
                                                                                   need_trained=self.need_trained,
                                                                                   cur_total_time=self.total_time,
                                                                                   max_time=max_time)
-                self.archive.update(network)
+                self.archive.update(network, problem=self.problem)
                 self.n_eval += 1
                 self.total_time += train_time
                 self.total_epoch += train_epoch
                 self.pop.append(network)
+                self.explored_networks.append([self.total_time, network.genotype, network_hash, network.score.copy()])
                 n += 1
                 if n == self.pop_size or is_terminated:
                     return is_terminated
@@ -110,10 +122,11 @@ class NSGA2(Algorithm):
                                                                               need_trained=self.need_trained,
                                                                               cur_total_time=self.total_time,
                                                                               max_time=max_time)
-            self.archive.update(network)
+            self.archive.update(network, problem=self.problem)
             self.n_eval += 1
             self.total_time += train_time
             self.total_epoch += train_epoch
+            self.explored_networks.append([self.total_time, network.genotype, self.problem.get_hash(network), network.score.copy()])
 
             if is_terminated or self.n_eval >= max_eval:
                 return True

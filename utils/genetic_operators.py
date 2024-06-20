@@ -4,7 +4,7 @@ from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 from pymoo.util.randomized_argsort import randomized_argsort
 from algos.utils import not_existed
 
-############################## NON-DOMINATED SORTING RANK AND CROWING DISTANCE SELECTION ##############################
+############################### NON-DOMINATED SORTING RANK AND CROWING DISTANCE SELECTION ##############################
 class RankAndCrowdingSurvival:
     def __init__(self):
         self.name = 'Rank and Crowding Survival'
@@ -96,7 +96,7 @@ class BitStringMutation:
         self.prob = prob
 
     def do(self, problem, P, O, **kwargs):
-        P_hashes = [''.join(map(str, network.genotype)) for network in P]
+        P_hashes = [problem.get_hash(network) for network in P]
         current_O_genotypes = np.array([network.genotype for network in P])
 
         offspring_size = len(O)
@@ -122,13 +122,12 @@ class BitStringMutation:
                         _genotype[m] = new_op
 
                 if problem.search_space.is_valid(_genotype):
-                    _hash = ''.join(map(str, _genotype))
+                    network = Network()
+                    network.genotype = _genotype
+                    _hash = problem.get_hash(network)
 
                     if not_existed(_hash, P=P_hashes) or (nMutations - maxMutations > 0):
                         new_O_hashes.append(_hash)
-
-                        network = Network()
-                        network.genotype = _genotype
                         new_O.append(network)
                         n += 1
                         if n - offspring_size == 0:
@@ -163,19 +162,19 @@ class PointCrossover:
                     off_genotypes = crossover(parents[i][0].genotype, parents[i][1].genotype, self.method)
                     for j, _genotype in enumerate(off_genotypes):
                         if problem.search_space.is_valid(_genotype):
-                            _hash = ''.join(map(str, _genotype))
+                            network = Network()
+                            network.genotype = _genotype
+                            _hash = problem.get_hash(network)
 
                             if not_existed(_hash, O=O_hashes) or (nCrossovers - maxCrossovers > 0):
                                 O_hashes.append(_hash)
-                                network = Network()
-                                network.genotype = _genotype
                                 O.append(network)
                                 n += 1
                                 if n - offspring_size == 0:
                                     return O
                 else:
                     for network in parents[i]:
-                        _hash = ''.join(map(str, network.genotype))
+                        _hash = problem.get_hash(network)
                         O_hashes.append(_hash)
                         O.append(network)
                         n += 1

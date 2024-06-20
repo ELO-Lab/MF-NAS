@@ -50,3 +50,13 @@ MF-NAS:
     metric_stage2: val_per
     list_iepoch: [10, 20, 30, 40]
     n_candidate: 16
+
+NSGA2:
+    need_trained: [True, False]
+    list_metrics: [val_per, params]
+    list_iepochs: [12, 0]
+
+    pop_size: 20
+    crossover_method: 2X
+    prob_c: 0.9
+    prob_m: 1.0

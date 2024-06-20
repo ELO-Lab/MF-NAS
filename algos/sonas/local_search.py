@@ -31,29 +31,41 @@ class IteratedLocalSearch(Algorithm):
         best_network = self.search(max_eval=max_eval, max_time=max_time, metric=metric, **kwargs)
         return best_network, self.total_time, self.total_epoch
 
+    def evaluate(self, network, metric=None, using_zc_metric=None):
+        if using_zc_metric is None:
+            using_zc_metric = self.using_zc_metric
+        if metric is None:
+            metric = self.search_metric
+        total_time, total_epoch, is_terminated = self.problem.evaluate(network,
+                                                                       metric=metric, using_zc_metric=using_zc_metric,
+                                                                       cur_total_time=self.total_time,
+                                                                       max_time=self.max_time)
+        self.n_eval += 1
+        self.total_time += total_time
+        self.total_epoch += total_epoch
+        return is_terminated or self.n_eval >= self.max_eval
+
     def search(self, **kwargs):
-        max_eval = kwargs['max_eval']
-        max_time = kwargs['max_time']
-        metric = kwargs['metric']
+        self.max_eval = kwargs['max_eval']
+        self.max_time = kwargs['max_time']
+        self.search_metric = kwargs['metric']
 
         # Initialize starting solution
-        pbar = tqdm(total=max_eval)
+        pbar = tqdm(total=self.max_eval)
 
         init_network = sampling_solution(problem=self.problem)
 
-        train_time, train_epoch, _ = self.problem.evaluate(init_network,
-                                                           using_zc_metric=self.using_zc_metric,
-                                                           metric=metric, cur_total_time=0.0, max_time=np.inf)
-
-        self.n_eval += 1
+        is_terminated = self.evaluate(init_network)
         pbar.update(1)
-        self.total_time += train_time
-        self.total_epoch += train_epoch
 
         cur_network, best_network = deepcopy(init_network), deepcopy(init_network)
         update_log(best_network=best_network, cur_network=cur_network, algorithm=self)
 
-        while (self.n_eval <= max_eval) and (self.total_time <= max_time):
+        if is_terminated:
+            pbar.close()
+            return best_network
+
+        while True:
             improved = False
 
             # Get all neighbors within the distance k = 1
@@ -67,14 +79,8 @@ class IteratedLocalSearch(Algorithm):
 
                 ## For each neighbor, evaluate and compare to the current solution
                 for neighbor_network in list_neighbors:
-                    train_time, train_epoch, _ = self.problem.evaluate(neighbor_network,
-                                                                       using_zc_metric=self.using_zc_metric,
-                                                                       metric=metric, cur_total_time=0.0, max_time=np.inf)
-
-                    self.n_eval += 1
+                    is_terminated = self.evaluate(neighbor_network)
                     pbar.update(1)
-                    self.total_time += train_time
-                    self.total_epoch += train_epoch
 
                     ## Update the best solution so far
                     if neighbor_network.score > best_network.score:
@@ -88,6 +94,11 @@ class IteratedLocalSearch(Algorithm):
 
                         if self.first_improvement:
                             break
+
+                    if is_terminated:
+                        pbar.close()
+                        return best_network
+
                 if self.first_improvement and improved:
                     break
 
@@ -105,20 +116,16 @@ class IteratedLocalSearch(Algorithm):
                         break
                 cur_network = deepcopy(list_neighbors[0])
 
-                train_time, train_epoch, _ = self.problem.evaluate(cur_network,
-                                                                   using_zc_metric=self.using_zc_metric,
-                                                                   metric=metric, cur_total_time=0.0, max_time=np.inf)
-
-                self.n_eval += 1
+                is_terminated = self.evaluate(cur_network)
                 pbar.update(1)
-                self.total_time += train_time
-                self.total_epoch += train_epoch
 
                 if cur_network.score > best_network.score:
                     best_network = deepcopy(cur_network)
                 update_log(best_network=best_network, cur_network=cur_network, algorithm=self)
-        pbar.close()
-        return best_network
+
+                if is_terminated:
+                    pbar.close()
+                    return best_network
 
 def get_indices(genotype, distance):
     return list(itertools.combinations(range(len(genotype)), distance))
@@ -126,6 +133,7 @@ def get_indices(genotype, distance):
 def get_neighbors(cur_network, ids, problem):
     list_neighbors = []
     list_available_ops = []
+    list_neighbor_hashes = []
     genotype_cur_state = cur_network.genotype.copy()
     for i in ids:
         # Get all neighbors at the index-i (i in list of indices ids)
@@ -141,6 +149,9 @@ def get_neighbors(cur_network, ids, problem):
         if problem.search_space.is_valid(genotype_neighbor):
             neighbor = Network()
             neighbor.genotype = genotype_neighbor.tolist().copy()
-            list_neighbors.append(neighbor)
+            _hash = problem.get_hash(neighbor)
+            if _hash not in list_neighbor_hashes:
+                list_neighbors.append(neighbor)
+                list_neighbor_hashes.append(_hash)
     np.random.shuffle(list_neighbors)
     return list_neighbors

@@ -22,10 +22,11 @@ class NumpyEncoder(json.JSONEncoder):
 
 def so_evaluate(search_result: Network, problem):
     evaluation_result = {'Networks': []}
-    test_performance = problem.get_test_performance(search_result)
+    test_performance, eval_cost = problem.get_test_performance(search_result)
     evaluation_result['Networks'].append({'genotype': search_result.genotype,
-                                          'phenotype': problem.search_space.decode(search_result.genotype),
+                                          'phenotype': f'{problem.search_space.decode(search_result.genotype)}',
                                           'test_acc': test_performance})
+    evaluation_result['Evaluation Cost (GPU seconds)'] = eval_cost
     return evaluation_result
 
 def mo_evaluate(search_result: ElitistArchive, problem, **kwargs):
@@ -56,25 +57,27 @@ def mo_evaluate(search_result: ElitistArchive, problem, **kwargs):
     evaluation_result['Evaluation Cost (GPU seconds)'] = int(eval_cost)
     return evaluation_result
 
-def run_evaluate(res_file, problem, nas_type, save_path, filename, **kwargs):
-    print('-> Evaluate:')
+def run_evaluate(res_file, problem, nas_type, save_path, filename, verbose=True, **kwargs):
     search_result, search_cost, total_epoch = p.load(open(res_file, 'rb'))
     if nas_type == 'so':
         evaluation_result = so_evaluate(search_result, problem)
     else:
         evaluation_result = mo_evaluate(search_result, problem, **kwargs)
-    for network_id, info in enumerate(evaluation_result['Networks']):
-        print(f'   * Network #{network_id}:')
-        for key in info:
-            print(f'     + {key}: {info[key]}')
-        print()
-    for key in list(evaluation_result.keys())[1:]:
-        print(f'   * {key}: {evaluation_result[key]}')
-    print('-' * 100)
+    if verbose:
+        print('-> Evaluate:')
+        for network_id, info in enumerate(evaluation_result['Networks']):
+            print(f'   * Network #{network_id}:')
+            for key in info:
+                print(f'     + {key}: {info[key]}')
+            print()
+        for key in list(evaluation_result.keys())[1:]:
+            print(f'   * {key}: {evaluation_result[key]}')
+        print('-' * 100)
     evaluation_result['Search Cost (GPU seconds)'] = search_cost
     evaluation_result['Search Cost (#Epochs)'] = total_epoch
     with open(f'{save_path}/{filename}.json', 'w') as fp:
         json.dump(evaluation_result, fp, indent=4, cls=NumpyEncoder)
+    return evaluation_result
 
 def run(problem, nas_type, res_path):
     res_files = glob(res_path + '/results/*.p')
@@ -82,7 +85,7 @@ def run(problem, nas_type, res_path):
     print('Results Path:', res_path)
     for run_id, _res_path in enumerate(res_files):
         print(f'- RunID: {run_id + 1}\n')
-        run_evaluate(_res_path, problem, nas_type, res_path, filename=f'evaluation_results_run{run_id + 1}')
+        _ = run_evaluate(_res_path, problem, nas_type, res_path, filename=f'evaluation_results_run{run_id + 1}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -95,8 +98,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'cifar100', 'ImageNet16-120'],
                         help='dataset for NAS-Bench-201')
 
-    parser.add_argument('--optimizer', type=str, default='MF-NAS', help='the search strategy',
-                        choices=['RS', 'SH', 'FLS', 'BLS', 'REA', 'REA+W', 'MF-NAS', 'PLS', 'NSGA2'])
+    parser.add_argument('--optimizer', type=str, default='MF-NAS', help='the search strategy')
     parser.add_argument('--config_file', type=str, default='./configs/algo_201.yaml', help='the configuration file')
 
     args = parser.parse_args()

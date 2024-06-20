@@ -1,7 +1,7 @@
 """
-Source code for Local-search algorithm for Multi-Objective Neural Architecture Search (LOMONAS)
-GECCO 2023
-Authors: Quan Minh Phan, Ngoc Hoang Luong
+- Source code for "Local-search algorithm for Multi-Objective Neural Architecture Search (LOMONAS)"
+- Published in: GECCO 2023
+- Authors: Quan Minh Phan, Ngoc Hoang Luong
 """
 import numpy as np
 from copy import deepcopy
@@ -49,6 +49,7 @@ class LOMONAS(Algorithm):
 
         self.list_metrics, self.list_iepochs, self.need_trained = [], [], []
         self.network_history = []
+        self.explored_networks = []
 
     @property
     def hyperparameters(self):
@@ -77,6 +78,7 @@ class LOMONAS(Algorithm):
         self.local_archive = ElitistArchive()
         self.last_archive = None
         self.network_history = []
+        self.explored_networks = []
 
     """------------------------------------------------- EVALUATE --------------------------------------------"""
     def evaluate(self, network, **kwargs):
@@ -90,25 +92,40 @@ class LOMONAS(Algorithm):
         self.n_eval += 1
         self.total_time += train_time
         self.total_epoch += train_epoch
+        self.explored_networks.append([self.total_time, network.genotype, self.problem.get_hash(network), network.score.copy()])
 
     """-------------------------------------------------- SOLVE -----------------------------------------------"""
-    def _run(self, **kwargs):
-        self._reset()
-        self.setup()
-
-        max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
-        max_time = self.problem.max_time if self.max_time is None else self.max_time
+    def reformat_list_metrics(self):
         list_metrics = []
         for i in range(len(self.need_trained)):
             if self.need_trained[i]:
                 list_metrics.append(self.list_metrics[i] + f'_{self.list_iepochs[i]}')
             else:
                 list_metrics.append(self.list_metrics[i])
+        return list_metrics
 
-        approximation_set = self.search(max_eval=max_eval, max_time=max_time, list_metrics=list_metrics, **kwargs)
+    def finalize(self, **kwargs):
+        try:
+            save_path = kwargs['save_path']
+            rid = kwargs['rid']
+            import pickle as p
+            p.dump(self.explored_networks, open(save_path + f'/explored_networks_run{rid}.p', 'wb'))
+        except KeyError:
+            pass
+
+    def _run(self, **kwargs):
+        self._reset()
+
+        max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
+        max_time = self.problem.max_time if self.max_time is None else self.max_time
+
+        approximation_set = self.search(max_eval=max_eval, max_time=max_time, **kwargs)
         return approximation_set, self.total_time, self.total_epoch
 
     def search(self, **kwargs):
+        self.setup()
+        list_metrics = self.reformat_list_metrics()
+        kwargs['list_metrics'] = list_metrics
         first = True
         while not self.isTerminated(max_eval=kwargs['max_eval'], max_time=kwargs['max_time']):  # line 5 - 27
             self.initialize(first, **kwargs)  # Sample new starting solution for the next local search
@@ -125,8 +142,8 @@ class LOMONAS(Algorithm):
         return False
 
     def update_archive(self, solution):
-        self.local_archive.update(solution)
-        self.archive.update(solution)
+        self.local_archive.update(solution, problem=self.problem)
+        self.archive.update(solution, problem=self.problem)
 
     def initialize(self, first=True, **kwargs):
         start_solution = self.sample_starting_solution(first=first, **kwargs)  # Random a starting solution (line 3)

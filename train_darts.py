@@ -138,55 +138,8 @@ def run(kwargs):
 
     for iepoch in range(start_iepoch + 1, end_iepoch + 1):
         model.drop_path_prob = drop_path_prob * iepoch / max_epoch
-        train_acc, train_objs = train(model, train_loader, criterion, optimizer)
-        valid_acc, valid_objs = inference(model, valid_loader, criterion)
-
-        # model.train()
-        # objs = AverageMeter()
-        # top1 = AverageMeter()
-        #
-        #
-        # for step, (inputs, targets) in enumerate(tqdm(train_loader)):
-        #     inputs = inputs.to(device)
-        #     targets = targets.to(device)
-        #
-        #     optimizer.zero_grad()
-        #     logits, logits_aux = model(inputs)
-        #     loss = criterion(logits, targets)
-        #
-        #     if auxiliary:
-        #         loss_aux = criterion(logits_aux, targets)
-        #         loss += auxiliary_weight * loss_aux
-        #
-        #     loss.backward()
-        #     nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-        #     optimizer.step()
-        #
-        #     prec1 = accuracy(logits, targets, topk=(1,))[0]
-        #     n = inputs.size(0)
-        #     objs.update(loss.item(), n)
-        #     top1.update(prec1.item(), n)
-        #
-        # train_acc, train_objs = top1.avg, objs.avg
-
-        # objs = AverageMeter()
-        # top1 = AverageMeter()
-        # model.eval()
-        #
-        # for step, (inputs, targets) in enumerate(tqdm(valid_loader)):
-        #     with torch.no_grad():
-        #         inputs = inputs.to(device)
-        #         targets = targets.to(device)
-        #
-        #         logits, _ = model(inputs)
-        #         loss = criterion(logits, targets)
-        #
-        #         prec1 = accuracy(logits, targets, topk=(1,))[0]
-        #         n = inputs.size(0)
-        #         objs.update(loss.item(), n)
-        #         top1.update(prec1.item(), n)
-        #
-        # valid_acc, valid_objs = top1.avg, objs.avg
+        train_acc, _ = train(model, train_loader, criterion, optimizer)
+        valid_acc, _ = inference(model, valid_loader, criterion)
 
         is_best = valid_acc > best_score
         best_score = max(valid_acc, best_score)

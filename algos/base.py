@@ -5,6 +5,7 @@ class Algorithm(ABC):
     def __init__(self, nas_type='so'):
         self.problem = None
         self.max_eval, self.max_time = None, None
+        self.search_metric = None
 
         self.using_zc_metric = False
         self.metric = None
@@ -33,6 +34,9 @@ class Algorithm(ABC):
         self.reset()
         result, search_cost, total_epoch = self._run(**kwargs)
         return result, search_cost, total_epoch
+
+    def finalize(self, **kwargs):
+        pass
 
     @abstractmethod
     def _run(self, **kwargs):

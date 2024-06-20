@@ -1,22 +1,21 @@
-from problems import Problem
-from search_spaces import SS_ASR
-from search_spaces.nbasr.utils import get_model_graph, graph_hash
+import os
+import json
 import numpy as np
 import pickle as p
-import json
-import os
-
+from pymoo.indicators.hv import HV
+from problems.utils import get_ref_point
+from problems import Problem
+from search_spaces import SS_NATS
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__)).split('/')
 ROOT_DIR = '/'.join(ROOT_DIR[:-1])
 
-class NB_ASR(Problem):
+class NB_NATS(Problem):
     def __init__(self, max_eval, max_time, dataset, **kwargs):
-        super().__init__(SS_ASR(), max_eval, max_time)
+        super().__init__(SS_NATS(), max_eval, max_time)
         self.dataset = dataset
-        self.zc_database = p.load(open(ROOT_DIR + f'/database/nbasr/[NBASR]_zc_data.p', 'rb'))
-        self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nbasr/[NBASR]_data.p', 'rb'))
-        self.pof = json.load(open(ROOT_DIR + f'/database/nbasr/[NBASR]_pof.json'))
-
+        self.zc_database = p.load(open(ROOT_DIR + f'/database/nats/[NATS][{self.dataset}]_zc_data.p', 'rb'))
+        self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nats/[NATS][{self.dataset}]_data.p', 'rb'))
+        self.list_pof = json.load(open(ROOT_DIR + f'/database/nats/[NATS][{self.dataset}]_pof.json'))
         self.mo_objective = kwargs['mo_objective']
 
     def mo_evaluate(self, list_networks, list_metrics, **kwargs):
@@ -34,11 +33,11 @@ class NB_ASR(Problem):
                 train_time += _train_time
                 train_epoch += _train_epoch
 
-                if 'flops' in metric or 'params' in metric:
+                if 'flops' in metric or 'params' in metric or 'loss' in metric:
                     scores[metric] = score
                 else:
-                    if 'per' in metric:
-                        scores[metric] = -score
+                    if 'acc' in metric:
+                        scores[metric] = 100 - score
                     else:
                         scores[metric] = -score
             network.score = np.round([scores[metric] for metric in list_metrics], 4)
@@ -52,7 +51,6 @@ class NB_ASR(Problem):
         max_time = kwargs['max_time']
         cur_total_time = kwargs['cur_total_time']
         TOTAL_TIME, TOTAL_EPOCHS = 0.0, 0
-
         if not isinstance(networks, list) and not isinstance(networks, np.ndarray):
             networks = [networks]
         for _network in networks:
@@ -92,16 +90,16 @@ class NB_ASR(Problem):
     def zc_evaluate(self, network, inplace, **kwargs):
         metric = kwargs['metric']
         genotype = network.genotype
-        time = 0.0
+        phenotype = self.search_space.decode(genotype)
 
-        h = self.get_h(network=genotype)
         if metric in ['flops', 'params']:
             if metric == 'flops':
-                score = self.benchmark_database[h]['FLOPs']
+                score, time = self.benchmark_database[phenotype]['FLOPs'], 0.0
             else:
-                score = self.benchmark_database[h]['params']
+                score, time = self.benchmark_database[phenotype]['params'], 0.0
         else:
-            score = self.zc_database[h][metric]
+            score, time = np.mean(self.zc_database[phenotype][metric]), 0.0
+
         if inplace:
             network.score = score
             return time
@@ -111,37 +109,29 @@ class NB_ASR(Problem):
     def train(self, network, inplace, **kwargs):
         metric = kwargs['metric']
         iepoch = kwargs['iepoch']
-        dif_epoch = iepoch - network.info['cur_iepoch'][-1]
-
         genotype = network.genotype
+        phenotype = self.search_space.decode(genotype)
 
-        h = self.get_h(network=genotype)
-        info = self.benchmark_database[h]
+        dif_epoch = iepoch - network.info['cur_iepoch'][-1]
+        info = self.benchmark_database[phenotype]
         score = info[metric][iepoch - 1]
-        time = 0
+        if 'loss' in metric:
+            score *= -1
+        time = info['train_time'] * dif_epoch
         network.info['cur_iepoch'].append(iepoch)
         network.info['train_time'].append(time)
         if inplace:
-            network.score = -score
+            network.score = score
             return time, dif_epoch
         else:
-            return -score, time, dif_epoch
+            return score, time, dif_epoch
 
     def get_test_performance(self, network, **kwargs):
-        time = 0.0
         genotype = network.genotype
-        h = self.get_h(network=genotype)
-        test_PER = np.round(self.benchmark_database[h]['test_per'] * 100, 2)
-        return test_PER, time
-
-    def get_h(self, network):
-        if isinstance(network, list):
-            network = np.array(network)
-        if isinstance(network, np.ndarray):
-            network = self.search_space.decode(network)
-        g, _ = get_model_graph(network, ops=None, minimize=True)
-        h = graph_hash(g)
-        return h
+        phenotype = self.search_space.decode(genotype)
+        time = self.benchmark_database[phenotype]['train_time'] * 90
+        test_acc = np.round(self.benchmark_database[phenotype]['test_acc'][-1], 2)
+        return test_acc, time
 
     def get_hv_value(self, list_networks, list_metrics):
         try:
@@ -151,13 +141,15 @@ class NB_ASR(Problem):
         list_metrics = list_metrics.split('&')
         F = []
         for network in list_networks:
-            test_per, _ = self.get_test_performance(network)
-            _F = [test_per]
+            test_acc, _ = self.get_test_performance(network)
+            test_err = 100 - test_acc
+            _F = [test_err]
             for metric in list_metrics[1:]:
                 score, _ = self.zc_evaluate(network, inplace=False, metric=metric)
                 _F.append(score)
             F.append(_F)
         F = np.array(F)
+
         nadir_point = np.max(pof, axis=0)
         utopian_point = np.min(pof, axis=0)
         pof = (pof - utopian_point) / (nadir_point - utopian_point)

@@ -26,10 +26,6 @@ class DARTS(Problem):
         # self.using_ray = kwargs['using_ray']
         self.max_epoch = kwargs['max_epoch']
 
-        # if self.using_ray:
-        #     import ray
-        #     ray.init(_temp_dir=f'{root}/exp')
-
         _ = torchvision.datasets.CIFAR10(root=f'{root}/dataset/cifar10', train=True, download=True)
         _ = torchvision.datasets.CIFAR10(root=f'{root}/dataset/cifar10', train=False, download=True)
 

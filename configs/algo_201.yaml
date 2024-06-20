@@ -65,3 +65,32 @@ NSGA2:
     crossover_method: 2X
     prob_c: 0.9
     prob_m: 1.0
+
+LOMONAS:
+    need_trained: [True, False]
+    list_metrics: [val_acc, flops]
+    list_iepochs: [12, 0]
+
+    k: 3
+    alpha: 210
+    check_limited_neighbors: True
+    neighborhood_check_on_potential_sols: True
+
+MOSH:
+    need_trained: [True, False]
+    list_metrics: [val_acc, flops]
+    list_iepochs: [[12, 25, 50, 100, 200], 0]
+    n_remaining_candidates: [60, 50, 40, 30, 20]
+
+MOF-NAS:
+    # stage 1
+    optimizer_stage1: PLS  # choices: [PLS]
+    need_trained_stage1: [False, False]
+    list_metrics_stage1: [synflow, flops]
+    max_eval_stage1: 2000
+
+    # stage 2
+    need_trained_stage2: [True, False]
+    list_metrics_stage2: [val_acc, flops]
+    list_iepochs: [[12, 25, 50, 100, 200], 0]
+    n_remaining_candidates: [60, 50, 40, 30, 20]

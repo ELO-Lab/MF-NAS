@@ -1,8 +1,8 @@
-from models import Network
-from algos import Algorithm
+import random
 import numpy as np
 from copy import deepcopy
-import random
+from models import Network
+from algos import Algorithm
 
 class REA(Algorithm):
     def __init__(self):
@@ -22,10 +22,28 @@ class REA(Algorithm):
         self.trend_time = []
 
     def _run(self, **kwargs):
-        best_network = self.search(**kwargs)
+        max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
+        max_time = self.problem.max_time if self.max_time is None else self.max_time
+        metric = self.metric + f'_{self.iepoch}' if not self.using_zc_metric else self.metric
+
+        best_network = self.search(max_eval=max_eval, max_time=max_time, metric=metric, **kwargs)
         return best_network, self.total_time, self.total_epoch
 
-    def initialize(self, metric):
+    def evaluate(self, network, metric=None, using_zc_metric=None):
+        if using_zc_metric is None:
+            using_zc_metric = self.using_zc_metric
+        if metric is None:
+            metric = self.search_metric
+        total_time, total_epoch, is_terminated = self.problem.evaluate(network,
+                                                                       metric=metric, using_zc_metric=using_zc_metric,
+                                                                       cur_total_time=self.total_time,
+                                                                       max_time=self.max_time)
+        self.n_eval += 1
+        self.total_time += total_time
+        self.total_epoch += total_epoch
+        return is_terminated or self.n_eval >= self.max_eval
+
+    def initialize(self):
         best_scores = [-np.inf]
         best_network = None
         population = []  # (validation, spec) tuples
@@ -44,14 +62,10 @@ class REA(Algorithm):
                 network.genotype = genotype
                 init_pop.append(network)
         else:
-            init_pop, warmup_time = run_warm_up(self.n_sample_warmup, self.pop_size, self.problem, self.metric_warmup)
+            init_pop = run_warm_up(algo=self)
+
         for network in init_pop:
-            total_time, total_epoch, _ = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric,
-                                                               metric=metric, cur_total_time=0.0,
-                                                               max_time=np.inf)
-            self.n_eval += 1
-            self.total_time += total_time
-            self.total_epoch += total_epoch
+            is_terminated = self.evaluate(network)
             self.trend_time.append(self.total_time)
             population.append((network.score, network.genotype.copy()))
 
@@ -59,36 +73,33 @@ class REA(Algorithm):
                 best_scores.append(network.score)
                 best_network = deepcopy(network)
             self.trend_best_network.append(best_network)
+            if is_terminated:
+                break
         return population, best_scores, best_network
 
     def search(self, **kwargs):
+        self.max_eval = kwargs['max_eval']
+        self.max_time = kwargs['max_time']
+        self.search_metric = kwargs['metric']
+
         assert self.pop_size is not None
         assert self.tournament_size is not None
 
         if self.warm_up:
             assert self.n_sample_warmup != 0
             assert self.metric_warmup is not None
-        if not self.using_zc_metric:
-            metric = self.metric + f'_{self.iepoch}'
-        else:
-            metric = self.metric
         self._reset()
 
         # Initialize population
-        population, best_scores, best_network = self.initialize(metric)
+        population, best_scores, best_network = self.initialize()
 
         # After the population is seeded, proceed with evolving the population.
-        while (self.n_eval <= self.problem.max_eval) and (self.total_time <= self.problem.max_time):
+        while True:
             candidates = random_combination(population, self.tournament_size)
             best_candidate = sorted(candidates, key=lambda i: i[0])[-1][1]
             new_network = mutate(best_candidate, self.prob_mutation, problem=self.problem)
 
-            total_time, total_epoch, _ = self.problem.evaluate(new_network, using_zc_metric=self.using_zc_metric,
-                                                               metric=metric, cur_total_time=0.0,
-                                                               max_time=np.inf)
-            self.n_eval += 1
-            self.total_time += total_time
-            self.total_epoch += total_epoch
+            is_terminated = self.evaluate(new_network)
             self.trend_time.append(self.total_time)
 
             # In regularized evolution, we kill the oldest individual in the population.
@@ -98,28 +109,34 @@ class REA(Algorithm):
             if new_network.score > best_scores[-1]:
                 best_scores.append(new_network.score)
                 best_network = deepcopy(new_network)
-        return best_network
+            if is_terminated:
+                return best_network
 
-def run_warm_up(n_sample, k, problem, metric):
+def run_warm_up(algo):
+    n_sample = algo.n_sample_warmup
+    k = algo.pop_size
+    problem = algo.problem
+    metric = algo.metric_warmup
+
     list_network, list_scores = [], []
-    total_times = 0.0
     for _ in range(n_sample):
         while True:
             genotype = problem.search_space.sample(genotype=True)
             if problem.search_space.is_valid(genotype):
                 network = Network()
                 network.genotype = genotype
-                total_time, _, _ = problem.evaluate(network, using_zc_metric=True, metric=metric,
-                                                    cur_total_time=0.0, max_time=np.inf)
-                total_times += total_time
+                is_terminated = algo.evaluate(network, using_zc_metric=True, metric=metric)
+                algo.n_eval = 0
                 list_network.append(network)
                 list_scores.append(network.score)
                 break
+        if is_terminated:
+            break
     list_network = np.array(list_network)
     list_scores = np.array(list_scores)
     ids = np.flip(np.argsort(list_scores))
     list_network = list_network[ids]
-    return list_network[:k], total_times
+    return list_network[:k]
 
 def mutate(cur_network_genotype, mutation_rate=1.0, **kwargs):
     problem = kwargs['problem']

@@ -30,45 +30,35 @@ REA+W:
     prob_mutation: 1.0
     warm_up: True
     n_sample_warmup: 2000
-    metric_warmup: synflow  # choices: [synflow, flops, params]
+    metric_warmup: synflow # choices: [jacov, plain, grasp, fisher, epe_nas, zen, grad_norm, snip, l2_norm, synflow, nwot, flops, params]
 
 SH:
     using_zc_metric: False
     metric: val_acc
-    list_iepoch: [4, 12, 36, 108]
+    list_iepoch: [12, 25, 50, 90]
     n_candidate: 16
 
 MF-NAS:
     # stage 1
     optimizer_stage1: FLS  # choices: [FLS, BLS]
     using_zc_metric_stage1: True
-    metric_stage1: params  # choices: [synflow, flops, params]
+    metric_stage1: params  # choices: [jacov, plain, grasp, fisher, epe_nas, zen, grad_norm, snip, l2_norm, synflow, nwot, flops, params]
     max_eval_stage1: 2000
 
     # stage 2
     using_zc_metric_stage2: False
     metric_stage2: val_acc
-    list_iepoch: [4, 12, 36, 108]
+    list_iepoch: [12, 25, 50, 90]
     n_candidate: 16
 
 PLS:
     need_trained: [True, False]
-    list_metrics: [val_acc, params]
+    list_metrics: [val_acc, flops]
     list_iepochs: [12, 0]
-
-LOMONAS:
-    need_trained: [True, False]
-    list_metrics: [val_acc, params]
-    list_iepochs: [12, 0]
-
-    k: 3
-    alpha: 210
-    check_limited_neighbors: True
-    neighborhood_check_on_potential_sols: True
 
 NSGA2:
     need_trained: [True, False]
-    list_metrics: [val_acc, params]
+    list_metrics: [val_acc, flops]
     list_iepochs: [12, 0]
 
     pop_size: 20
@@ -76,21 +66,31 @@ NSGA2:
     prob_c: 0.9
     prob_m: 1.0
 
+LOMONAS:
+    need_trained: [True, False]
+    list_metrics: [val_acc, flops]
+    list_iepochs: [12, 0]
+
+    k: 3
+    alpha: 210
+    check_limited_neighbors: True
+    neighborhood_check_on_potential_sols: True
+
 MOSH:
     need_trained: [True, False]
-    list_metrics: [val_acc, params]
-    list_iepochs: [[4, 12, 36, 108], 0]
-    n_remaining_candidates: [80, 60, 40, 20]
+    list_metrics: [val_acc, flops]
+    list_iepochs: [[12, 25, 50, 100, 200], 0]
+    n_remaining_candidates: [60, 50, 40, 30, 20]
 
 MOF-NAS:
     # stage 1
     optimizer_stage1: PLS  # choices: [PLS]
     need_trained_stage1: [False, False]
-    list_metrics_stage1: [synflow, params]
+    list_metrics_stage1: [synflow, flops]
     max_eval_stage1: 2000
 
     # stage 2
     need_trained_stage2: [True, False]
-    list_metrics_stage2: [val_acc, params]
-    list_iepochs: [[4, 12, 36, 108], 0]
-    n_remaining_candidates: [80, 60, 40, 20]
+    list_metrics_stage2: [val_acc, flops]
+    list_iepochs: [[12, 25, 50, 100, 200], 0]
+    n_remaining_candidates: [60, 50, 40, 30, 20]

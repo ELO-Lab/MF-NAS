@@ -73,8 +73,11 @@ class ElitistArchive:
     def update(self, solution, **kwargs):
         length = len(self.archive)
         notDominated = np.ones(length).astype(bool)
-
-        genotypeHash_solution = ''.join(map(str, solution.genotype))
+        try:
+            problem = kwargs['problem']
+            genotypeHash_solution = problem.get_hash(solution)
+        except KeyError:
+            genotypeHash_solution = ''.join(map(str, solution.genotype))
         if genotypeHash_solution not in self.genotypeHash_archive:
             # Compare to every solutions in Elitist Archive
             for i, elitist in enumerate(self.archive):
@@ -123,3 +126,24 @@ class ElitistArchive:
 class Footprint:
     def __init__(self):
         self.data = {}
+
+def get_idx_front_0(F: ndarray) -> ndarray:
+    """
+    - Takes in the fitness values of a set of solutions.
+    - Return the indices of solutions that are on the non-dominated front.
+
+    :param F: the fitness values (np.ndarray)
+    :return: indices (np.ndarray)
+    """
+    l = len(F)
+    r = np.zeros(l, dtype=int)
+    for i in range(l):
+        if r[i] == 0:
+            for j in range(i + 1, l):
+                if r[j] == 0:
+                    better_sol = compare_f1_f2(F[i], F[j])
+                    if better_sol == 0:
+                        r[j] += 1
+                    elif better_sol == 1:
+                        r[i] += 1
+    return r == 0

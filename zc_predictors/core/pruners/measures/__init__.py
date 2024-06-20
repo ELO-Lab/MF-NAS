@@ -62,6 +62,9 @@ def load_all():
     from . import zen
     from . import l2_norm
     from . import nwot
+    from . import zico
+    from . import ntk
+    from . import meco
 
 # TODO: should we do that by default?
 load_all()

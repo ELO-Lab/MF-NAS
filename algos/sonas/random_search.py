@@ -2,7 +2,6 @@ from algos import Algorithm
 from models import Network
 from copy import deepcopy
 from algos.utils import sampling_solution, update_log
-import numpy as np
 
 class RandomSearch(Algorithm):
     def __init__(self):
@@ -27,26 +26,35 @@ class RandomSearch(Algorithm):
         best_network = self.search(max_eval=max_eval, max_time=max_time, metric=metric, **kwargs)
         return best_network, self.total_time, self.total_epoch
 
+    def evaluate(self, network, metric=None, using_zc_metric=None):
+        if using_zc_metric is None:
+            using_zc_metric = self.using_zc_metric
+        if metric is None:
+            metric = self.search_metric
+        total_time, total_epoch, is_terminated = self.problem.evaluate(network,
+                                                                       metric=metric, using_zc_metric=using_zc_metric,
+                                                                       cur_total_time=self.total_time,
+                                                                       max_time=self.max_time)
+        self.n_eval += 1
+        self.total_time += total_time
+        self.total_epoch += total_epoch
+        return is_terminated or self.n_eval >= self.max_eval
+
     def search(self, **kwargs):
-        max_eval = kwargs['max_eval']
-        max_time = kwargs['max_time']
-        metric = kwargs['metric']
+        self.max_eval = kwargs['max_eval']
+        self.max_time = kwargs['max_time']
+        self.search_metric = kwargs['metric']
 
         best_network = Network()
         best_network.score = -99999999
 
-        while (self.n_eval <= max_eval) and (self.total_time <= max_time):
+        while True:
             network = sampling_solution(problem=self.problem)
-            total_time, total_epoch, _ = self.problem.evaluate(network, using_zc_metric=self.using_zc_metric,
-                                                               metric=metric, cur_total_time=0.0,  max_time=np.inf)
-
-            self.n_eval += 1
-            self.total_time += total_time
-            self.total_epoch += total_epoch
+            is_terminated = self.evaluate(network)
 
             if network.score > best_network.score:
                 best_network = deepcopy(network)
 
             update_log(best_network=best_network, cur_network=network, algorithm=self)
-
-        return best_network
+            if is_terminated:
+                return best_network
