@@ -27,11 +27,10 @@ class NB_101(Problem):
     def __init__(self, max_eval, max_time, dataset, **kwargs):
         super().__init__(SS_101(), max_eval, max_time)
         self.dataset = dataset
-        self.zc_database = p.load(open(ROOT_DIR + f'/database/nb101/zc_database.p', 'rb'))
-        self.flops_database = p.load(open(ROOT_DIR + f'/database/nb101/flops_database.p', 'rb'))
-        self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nb101/data.p', 'rb'))
+        self.zc_database = p.load(open(ROOT_DIR + f'/database/nb101/[NB101]_zc_data.p', 'rb'))
+        self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nb101/[NB101]_data.p', 'rb'))
+        self.list_pof = json.load(open(ROOT_DIR + f'/database/nb101/[NB101]_pof.json'))
 
-        self.list_pof = json.load(open(ROOT_DIR + f'/database/nb101/pof_{self.dataset}.json'))
         self.mo_objective = kwargs['mo_objective']
 
     def mo_evaluate(self, list_networks, list_metrics, **kwargs):
@@ -72,7 +71,7 @@ class NB_101(Problem):
         for _network in networks:
             cur_score = _network.score
             if inplace:
-                train_time, train_epoch = self._evaluate(_network, bool(kwargs['using_zc_metric']), kwargs['metric'])
+                train_time, train_epoch = self._evaluate(_network, bool(kwargs['using_zc_metric']), kwargs['metric'], inplace=True)
             else:
                 score, train_time, train_epoch = self._evaluate(_network, bool(kwargs['using_zc_metric']), kwargs['metric'], inplace=False)
                 _network.score = score
@@ -110,7 +109,7 @@ class NB_101(Problem):
         h = self.get_hash(network=network)
         if metric in ['flops', 'params']:
             if metric == 'flops':
-                score = self.flops_database[h]
+                score = self.benchmark_database['108'][h]['flops']
             else:
                 score = self.benchmark_database['108'][h]['n_params']
         else:
@@ -129,7 +128,6 @@ class NB_101(Problem):
         h = self.get_hash(network=network)
         info = self.benchmark_database[f'{iepoch}'][h]
         score = info[metric]
-        network.score = score
         time = info['train_time'] - network.info['train_time'][-1]
         network.info['cur_iepoch'].append(iepoch)
         network.info['train_time'].append(time)
@@ -163,7 +161,6 @@ class NB_101(Problem):
         list_metrics = list_metrics.split('&')
         F = []
         for network in list_networks:
-            # network()
             test_acc, _ = self.get_test_performance(network)
             test_err = 100 - test_acc
             _F = [test_err]
@@ -172,7 +169,6 @@ class NB_101(Problem):
                 _F.append(score)
             F.append(_F)
         F = np.array(F)
-
         nadir_point = np.max(pof, axis=0)
         utopian_point = np.min(pof, axis=0)
         pof = (pof - utopian_point) / (nadir_point - utopian_point)

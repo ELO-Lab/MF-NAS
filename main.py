@@ -8,7 +8,7 @@ import pickle as p
 import os
 import pathlib
 from evaluate import run_evaluate
-from utils import create_result_folder
+from utils import create_result_folder, mean_std
 
 root = pathlib.Path(__file__).parent
 
@@ -19,10 +19,11 @@ def run(kwargs):
 
     search_space = kwargs.ss
     dataset = kwargs.dataset
-    if '201' in search_space:
+    if search_space in ['nb201', 'nats']:
         search_space += f'_{dataset}'
 
-    res_path = create_result_folder(opt.nas_type, root, opt_name, search_space, opt)
+    save_path = kwargs.save_path
+    res_path = create_result_folder(opt.nas_type, opt_name, search_space, opt, save_path)
 
     os.makedirs(res_path + '/results', exist_ok=True)
 
@@ -39,8 +40,12 @@ def run(kwargs):
 
     init_seed = args.init_seed
     print()
-    for run_id in [3]:
+    list_perf_ind = []
+    for run_id in range(1, n_run+1):
         search_result, search_cost, total_epoch = opt.run(seed=init_seed + run_id)
+        # search_result()
+        opt.finalize(save_path=res_path + f'/results', rid=run_id)
+
         p.dump([search_result, int(search_cost), int(total_epoch)], open(res_path + f'/results/search_results_run{run_id}.p', 'wb'))
         print(f'- RunID: {run_id}')
         print(f'  + Search cost (in seconds): {int(search_cost)}')
@@ -50,8 +55,19 @@ def run(kwargs):
         trend_total_epoch.append(total_epoch)
 
         if kwargs.evaluate_after_search:
-            run_evaluate(res_path + f'/results/search_results_run{run_id}.p', problem, opt.nas_type, save_path=res_path + f'/results',
-            filename=f'evaluation_results_run{run_id}', size_archive=20)
+            if opt_name == 'MOF-NAS':
+                size_archive = 20
+            else:
+                size_archive = 20
+            evaluation_result = run_evaluate(res_path + f'/results/search_results_run{run_id}.p',
+                                             problem, opt.nas_type,
+                                             save_path=res_path + f'/results',
+                                             filename=f'evaluation_results_run{run_id}', size_archive=size_archive, verbose=False)
+            if opt.nas_type == 'mo':
+                list_perf_ind.append(evaluation_result['HV'])
+            else:
+                list_perf_ind.append(evaluation_result['Networks'][-1]['test_acc'])
+    print('- Average performance:', mean_std(list_perf_ind, verbose=False))
     print(f'- Average Search Cost (in seconds): {np.round(np.mean(trend_search_cost))}')
     print(f'- Average Search Cost (in epochs): {np.round(np.mean(trend_total_epoch))}')
     print('=' * 100)
@@ -61,7 +77,7 @@ if __name__ == '__main__':
 
     ''' PROBLEM '''
     parser.add_argument('--ss', type=str, default='nb201', help='the search space',
-    choices=['nb201', 'nb101', 'nbasr', 'darts'])
+    choices=['nb201', 'nb101', 'nbasr', 'darts', 'nats'])
     parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'cifar100', 'ImageNet16-120'],
     help='dataset for NAS-Bench-201')
 
@@ -73,6 +89,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_run', type=int, default=500, help='number of experiment runs')
     parser.add_argument('--init_seed', type=int, default=0, help='initial random seed')
     parser.add_argument('--evaluate_after_search', help='Evaluate the results after searching', action='store_true')
+    parser.add_argument('--save_path', default=f'{root}/exp')
 
     args = parser.parse_args()
 
