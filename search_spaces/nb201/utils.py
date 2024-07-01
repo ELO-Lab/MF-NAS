@@ -1,10 +1,8 @@
 ##################################################
 # Copyright (c) Xuanyi Dong [GitHub D-X-Y], 2019 #
 ##################################################
-from typing import List, Text, Any
-import torch.nn as nn
 from copy import deepcopy
-from search_spaces.nats.ops import ResNetBasicblock, InferCell
+from collections import namedtuple
 
 def get_combination(space, num):
     combs = []
@@ -20,7 +18,6 @@ def get_combination(space, num):
                     new_combs.append(xstring)
             combs = new_combs
     return combs
-
 
 class Structure:
     def __init__(self, genotype):
@@ -198,144 +195,11 @@ class Structure:
             return all_archs
         else:
             return [Structure(x) for x in all_archs]
-
-
-ResNet_CODE = Structure(
-    [
-        (("nor_conv_3x3", 0),),  # node-1
-        (("nor_conv_3x3", 1),),  # node-2
-        (("skip_connect", 0), ("skip_connect", 2)),
-    ]  # node-3
-)
-
-AllConv3x3_CODE = Structure(
-    [
-        (("nor_conv_3x3", 0),),  # node-1
-        (("nor_conv_3x3", 0), ("nor_conv_3x3", 1)),  # node-2
-        (("nor_conv_3x3", 0), ("nor_conv_3x3", 1), ("nor_conv_3x3", 2)),
-    ]  # node-3
-)
-
-AllFull_CODE = Structure(
-    [
-        (
-            ("skip_connect", 0),
-            ("nor_conv_1x1", 0),
-            ("nor_conv_3x3", 0),
-            ("avg_pool_3x3", 0),
-        ),  # node-1
-        (
-            ("skip_connect", 0),
-            ("nor_conv_1x1", 0),
-            ("nor_conv_3x3", 0),
-            ("avg_pool_3x3", 0),
-            ("skip_connect", 1),
-            ("nor_conv_1x1", 1),
-            ("nor_conv_3x3", 1),
-            ("avg_pool_3x3", 1),
-        ),  # node-2
-        (
-            ("skip_connect", 0),
-            ("nor_conv_1x1", 0),
-            ("nor_conv_3x3", 0),
-            ("avg_pool_3x3", 0),
-            ("skip_connect", 1),
-            ("nor_conv_1x1", 1),
-            ("nor_conv_3x3", 1),
-            ("avg_pool_3x3", 1),
-            ("skip_connect", 2),
-            ("nor_conv_1x1", 2),
-            ("nor_conv_3x3", 2),
-            ("avg_pool_3x3", 2),
-        ),
-    ]  # node-3
-)
-
-AllConv1x1_CODE = Structure(
-    [
-        (("nor_conv_1x1", 0),),  # node-1
-        (("nor_conv_1x1", 0), ("nor_conv_1x1", 1)),  # node-2
-        (("nor_conv_1x1", 0), ("nor_conv_1x1", 1), ("nor_conv_1x1", 2)),
-    ]  # node-3
-)
-
-AllIdentity_CODE = Structure(
-    [
-        (("skip_connect", 0),),  # node-1
-        (("skip_connect", 0), ("skip_connect", 1)),  # node-2
-        (("skip_connect", 0), ("skip_connect", 1), ("skip_connect", 2)),
-    ]  # node-3
-)
-
-architectures = {
-    "resnet": ResNet_CODE,
-    "all_c3x3": AllConv3x3_CODE,
-    "all_c1x1": AllConv1x1_CODE,
-    "all_idnt": AllIdentity_CODE,
-    "all_full": AllFull_CODE,
-}
-
-class DynamicShapeTinyNet(nn.Module):
-    def __init__(self, channels: List[int], genotype: Any, num_classes: int):
-        super(DynamicShapeTinyNet, self).__init__()
-        self._channels = channels
-        if len(channels) % 3 != 2:
-            raise ValueError("invalid number of layers : {:}".format(len(channels)))
-        self._num_stage = N = len(channels) // 3
-
-        self.stem = nn.Sequential(
-            nn.Conv2d(3, channels[0], kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(channels[0]),
-        )
-
-        # layer_channels   = [C    ] * N + [C*2 ] + [C*2  ] * N + [C*4 ] + [C*4  ] * N
-        layer_reductions = [False] * N + [True] + [False] * N + [True] + [False] * N
-
-        c_prev = channels[0]
-        self.cells = nn.ModuleList()
-        for index, (c_curr, reduction) in enumerate(zip(channels, layer_reductions)):
-            if reduction:
-                cell = ResNetBasicblock(c_prev, c_curr, 2, True)
-            else:
-                cell = InferCell(genotype, c_prev, c_curr, 1)
-            self.cells.append(cell)
-            c_prev = cell.out_dim
-        self._num_layer = len(self.cells)
-
-        self.lastact = nn.Sequential(nn.BatchNorm2d(c_prev), nn.ReLU(inplace=False))
-        self.global_pooling = nn.AdaptiveAvgPool2d(1)
-        self.classifier = nn.Linear(c_prev, num_classes)
-
-    def get_message(self) -> Text:
-        string = self.extra_repr()
-        for i, cell in enumerate(self.cells):
-            string += "\n {:02d}/{:02d} :: {:}".format(
-                i, len(self.cells), cell.extra_repr()
-            )
-        return string
-
-    def extra_repr(self):
-        return "{name}(C={_channels}, N={_num_stage}, L={_num_layer})".format(
-            name=self.__class__.__name__, **self.__dict__
-        )
-
-    def forward(self, inputs):
-        feature = self.stem(inputs)
-        for i, cell in enumerate(self.cells):
-            feature = cell(feature)
-
-        out = self.lastact(feature)
-        out = self.global_pooling(out)
-
-        out = out.view(out.size(0), -1)
-        logits = self.classifier(out)
-
-        return logits
-
-    def forward_before_global_avg_pool(self, inputs):
-        feature = self.stem(inputs)
-        for i, cell in enumerate(self.cells):
-            feature = cell(feature)
-
-        out = self.lastact(feature)
-        return out
+        
+def dict2config(xdict, logger):
+    assert isinstance(xdict, dict), "invalid type : {:}".format(type(xdict))
+    Arguments = namedtuple("Configure", " ".join(xdict.keys()))
+    content = Arguments(**xdict)
+    if hasattr(logger, "log"):
+        logger.log("{:}".format(content))
+    return content

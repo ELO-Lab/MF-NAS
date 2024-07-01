@@ -67,7 +67,7 @@ def get_train_val_loaders(config, mode):
             root=root_data, split="test", download=True, transform=valid_transform
         )
     elif dataset == 'ImageNet16-120':
-        from zc_predictor.DownsampledImageNet import ImageNet16
+        from zc_predictors.DownsampledImageNet import ImageNet16
 
         train_transform, valid_transform = _data_transforms_ImageNet_16_120(config)
         data_folder = root_data + "/ImageNet16-120"

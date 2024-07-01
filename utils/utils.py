@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import subprocess as sp
 import os
-from collections import namedtuple
 
 def create_result_folder(nas_type, opt_name, search_space, opt, save_path):
     if nas_type == 'so':
@@ -50,11 +49,3 @@ def get_gpu_memory():
     memory_free_info = sp.check_output(command.split()).decode('ascii').split('\n')[:-1][1:]
     memory_free_values = np.array([int(x.split()[0]) for i, x in enumerate(memory_free_info)])
     return memory_free_values
-
-def dict2config(xdict, logger):
-    assert isinstance(xdict, dict), "invalid type : {:}".format(type(xdict))
-    Arguments = namedtuple("Configure", " ".join(xdict.keys()))
-    content = Arguments(**xdict)
-    if hasattr(logger, "log"):
-        logger.log("{:}".format(content))
-    return content

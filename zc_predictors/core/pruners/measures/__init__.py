@@ -65,6 +65,7 @@ def load_all():
     from . import zico
     from . import ntk
     from . import meco
+    from . import swap
 
 # TODO: should we do that by default?
 load_all()

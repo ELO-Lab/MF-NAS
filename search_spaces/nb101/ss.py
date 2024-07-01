@@ -1,5 +1,6 @@
 from search_spaces import SearchSpace
 from search_spaces.nb101.utils import OutOfDomainError, check_spec, ModelSpec_
+from search_spaces.nb101.model import Network
 import numpy as np
 
 allowed_ops = ['conv3x3-bn-relu', 'conv1x1-bn-relu', 'maxpool3x3']
@@ -48,11 +49,19 @@ class SS_101(SearchSpace):
             return False
         return True
 
+    def get_model(self, genotype, num_classes=10):
+        phenotype = self.decode(genotype)
+        model_spec = ModelSpec_(phenotype['matrix'], phenotype['ops'])
+        network = Network(model_spec, stem_out=128, num_stacks=3, num_mods=3, num_classes=num_classes)
+        return network
+
 if __name__ == '__main__':
     # np.random.seed(0)
     # ss = SS_101()
-    # network = ss.sample()
-    # encode_network = ss.encode(network)
-    # decode_network = ss.decode(encode_network)
-    # print(network, encode_network, decode_network)
+    # phenotype = ss.sample()
+    # genotype = ss.encode(phenotype)
+    # network = ss.get_model(genotype)
+    # print('Phenotype:', phenotype)
+    # print('Genotype:', genotype)
+    # print('Network:', network)
     pass

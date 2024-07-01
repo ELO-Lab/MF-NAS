@@ -139,7 +139,7 @@ def find_measures(
 
     measure_score_list = {}
     for k, v in measures_arr.items():
-        if k == "jacov" or k == 'epe_nas' or k == 'nwot' or k == 'zen':
+        if k in ['jacov', 'epe_nas', 'nwot', 'zen', 'swap', 'ntk', 'zico', 'meco', 'meco_opt']:
             measure_score = v
         else:
             measure_score = sum_arr(v)

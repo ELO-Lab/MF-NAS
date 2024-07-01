@@ -1,7 +1,7 @@
 import numpy as np
-from utils import dict2config
 from search_spaces import SearchSpace
 from search_spaces.nats.model import Structure as CellStructure, DynamicShapeTinyNet
+from search_spaces.nats.utils import dict2config
 
 class SS_NATS(SearchSpace):
     def __init__(self):
@@ -53,13 +53,10 @@ class SS_NATS(SearchSpace):
 if __name__ == '__main__':
     # np.random.seed(0)
     # ss = SS_NATS()
-    # network = ss.sample()
-    # genotype = ss.encode(network)
-    # print(genotype)
-    # print(network)
-    # genotype = ss.encode(network)
-    # print(genotype)
-    # print(ss.decode(genotype))
-    # print(ss.return_available_ops(0))
-    # print(ss.get_model(genotype=genotype, num_classes=10))
+    # phenotype = ss.sample()
+    # genotype = ss.encode(phenotype)
+    # network = ss.get_model(genotype)
+    # print('Phenotype:', phenotype)
+    # print('Genotype:', genotype)
+    # print('Network:', network)
     pass
