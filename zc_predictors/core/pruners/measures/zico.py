@@ -76,6 +76,8 @@ def getzico(network, inputs, targets, loss_fn, split_data=2):
         st = sp * N // split_data
         en = (sp + 1) * N // split_data
         outputs = network.forward(inputs[st:en])
+        if isinstance(outputs, tuple):
+            outputs = outputs[0]
         loss = loss_fn(outputs, targets[st:en])
         loss.backward()
         grad_dict = getgrad(network, grad_dict, sp)

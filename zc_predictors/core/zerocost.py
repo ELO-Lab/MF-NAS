@@ -29,13 +29,17 @@ class ZeroCost(Predictor):
             print('Using CPU')
         self.config = config
 
-        num_classes_dict = {'CIFAR-10': 10, 'CIFAR-100': 100, 'ImageNet16-120': 120}
+        # if config['search_space'] == 'tnb101':
+        #     self.num_classes = 75
+        # else:
+        #     num_classes_dict = {'CIFAR-10': 10, 'CIFAR-100': 100, 'ImageNet16-120': 120}
+        #     self.num_classes = None
+        #     if self.config['dataset'] in num_classes_dict:
+        #         self.num_classes = num_classes_dict[self.config['dataset']]
+        #     else:
+        #         raise KeyError(f'Not support {self.config["dataset"]} dataset. Just only supported "CIFAR-10"; "CIFAR-100" '
+        #                        f'and ImageNet16-120 datasets')
         self.num_classes = None
-        if self.config['dataset'] in num_classes_dict:
-            self.num_classes = num_classes_dict[self.config['dataset']]
-        else:
-            raise KeyError(f'Not support {self.config["dataset"]} dataset. Just only supported "CIFAR-10"; "CIFAR-100" '
-                           f'and ImageNet16-120 datasets')
         self.train_loader = None
         self.pre_process()
 
@@ -58,7 +62,7 @@ class ZeroCost(Predictor):
 
             if key == 'synflow':
                 if score[key] == 0.:
-                    return score[key]
+                    return score
 
                 score[key] = math.log(score[key]) if score[key] > 0 else -math.log(-score[key])
 
