@@ -5,7 +5,7 @@
 """
 
 from algos import Algorithm
-from algos.sonas import IteratedLocalSearch, RandomSearch, SuccessiveHalving
+from algos.sonas import IteratedLocalSearch, RandomSearch, REA, GA, SuccessiveHalving
 import numpy as np
 
 class MF_NAS(Algorithm):
@@ -41,6 +41,10 @@ class MF_NAS(Algorithm):
             optimizer_stage1 = IteratedLocalSearch(first_improvement=False)
         elif self.optimizer_stage1 == 'RS':
             optimizer_stage1 = RandomSearch()
+        elif self.optimizer_stage1 == 'REA':
+            optimizer_stage1 = REA()
+        elif self.optimizer_stage1 == 'GA':
+            optimizer_stage1 = GA()
         else:
             raise ValueError(f'Not support this optimizer in MF-NAS framework: {self.optimizer_stage1}')
         optimizer_stage1.adapt(self.problem)

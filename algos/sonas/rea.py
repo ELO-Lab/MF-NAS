@@ -3,6 +3,7 @@ import numpy as np
 from copy import deepcopy
 from models import Network
 from algos import Algorithm
+from algos.utils import update_log, sampling_solution
 
 class REA(Algorithm):
     def __init__(self):
@@ -16,10 +17,14 @@ class REA(Algorithm):
         self.zc_metric = None
         self.n_sample_warmup = 0
         self.prob_mutation = 1.0
+        self.network_history = []
+        self.score_history = []
 
     def _reset(self):
         self.trend_best_network = []
         self.trend_time = []
+        self.network_history = []
+        self.score_history = []
 
     def _run(self, **kwargs):
         max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
@@ -44,38 +49,20 @@ class REA(Algorithm):
         return is_terminated or self.n_eval >= self.max_eval
 
     def initialize(self):
-        best_scores = [-np.inf]
-        best_network = None
-        population = []  # (validation, spec) tuples
-
         init_pop = []
         if not self.warm_up:
-            list_genotype = []
+            list_hashes = []
             for _ in range(self.pop_size):
                 while True:
-                    genotype = self.problem.search_space.sample(genotype=True)
-                    if self.problem.search_space.is_valid(genotype):
-                        list_genotype.append(genotype)
+                    network = sampling_solution(self.problem)
+                    network_hash = self.problem.get_hash(network)
+                    if network_hash not in list_hashes:
+                        list_hashes.append(network_hash)
+                        init_pop.append(network)
                         break
-            for genotype in list_genotype:
-                network = Network()
-                network.genotype = genotype
-                init_pop.append(network)
         else:
             init_pop = run_warm_up(algo=self)
-
-        for network in init_pop:
-            is_terminated = self.evaluate(network)
-            self.trend_time.append(self.total_time)
-            population.append((network.score, network.genotype.copy()))
-
-            if network.score > best_scores[-1]:
-                best_scores.append(network.score)
-                best_network = deepcopy(network)
-            self.trend_best_network.append(best_network)
-            if is_terminated:
-                break
-        return population, best_scores, best_network
+        return init_pop
 
     def search(self, **kwargs):
         self.max_eval = kwargs['max_eval']
@@ -90,8 +77,24 @@ class REA(Algorithm):
             assert self.metric_warmup is not None
         self._reset()
 
+        best_network = None
+        population = []  # (validation, spec) tuples
+
         # Initialize population
-        population, best_scores, best_network = self.initialize()
+        samples = self.initialize()
+        for network in samples:
+            is_terminated = self.evaluate(network)
+            self.trend_time.append(self.total_time)
+            population.append((network.score, network.genotype.copy()))
+
+            if best_network is None:
+                best_network = deepcopy(network)
+            else:
+                if network.score > best_network.score:
+                    best_network = deepcopy(network)
+            update_log(best_network=best_network, cur_network=network, algorithm=self)
+            if is_terminated:
+                break
 
         # After the population is seeded, proceed with evolving the population.
         while True:
@@ -106,9 +109,9 @@ class REA(Algorithm):
             population.append((new_network.score, new_network.genotype.copy()))
             population.pop(0)
 
-            if new_network.score > best_scores[-1]:
-                best_scores.append(new_network.score)
+            if new_network.score > best_network.score:
                 best_network = deepcopy(new_network)
+            update_log(best_network=best_network, cur_network=new_network, algorithm=self)
             if is_terminated:
                 return best_network
 
@@ -119,19 +122,20 @@ def run_warm_up(algo):
     metric = algo.metric_warmup
 
     list_network, list_scores = [], []
+    pop_hashes = []
     for _ in range(n_sample):
         while True:
-            genotype = problem.search_space.sample(genotype=True)
-            if problem.search_space.is_valid(genotype):
-                network = Network()
-                network.genotype = genotype
+            network = sampling_solution(problem)
+            network_hash = problem.get_hash(network)
+            if network_hash not in pop_hashes:
+                pop_hashes.append(network_hash)
                 is_terminated = algo.evaluate(network, using_zc_metric=True, metric=metric)
                 algo.n_eval = 0
                 list_network.append(network)
                 list_scores.append(network.score)
+                if is_terminated:
+                    break
                 break
-        if is_terminated:
-            break
     list_network = np.array(list_network)
     list_scores = np.array(list_scores)
     ids = np.flip(np.argsort(list_scores))

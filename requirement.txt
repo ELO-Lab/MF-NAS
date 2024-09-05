@@ -6,3 +6,4 @@ fvcore
 torch
 torchvision
 torchaudio
+transforms3d

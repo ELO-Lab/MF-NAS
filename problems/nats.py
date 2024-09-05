@@ -13,7 +13,7 @@ class NB_NATS(Problem):
     def __init__(self, max_eval, max_time, dataset, **kwargs):
         super().__init__(SS_NATS(), max_eval, max_time)
         self.dataset = dataset
-        self.zc_database = p.load(open(ROOT_DIR + f'/database/nats/[NATS][{self.dataset}]_zc_data.p', 'rb'))
+        self.zc_database = json.load(open(ROOT_DIR + f'/database/nats/zc_natsbench.json'))
         self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nats/[NATS][{self.dataset}]_data.p', 'rb'))
         self.list_pof = json.load(open(ROOT_DIR + f'/database/nats/[NATS][{self.dataset}]_pof.json'))
         self.mo_objective = kwargs['mo_objective']
@@ -98,7 +98,8 @@ class NB_NATS(Problem):
             else:
                 score, time = self.benchmark_database[phenotype]['params'], 0.0
         else:
-            score, time = np.mean(self.zc_database[phenotype][metric]), 0.0
+            score = self.zc_database[self.dataset][phenotype][metric]['score']
+            time = self.zc_database[self.dataset][phenotype][metric]['time']
 
         if inplace:
             network.score = score

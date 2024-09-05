@@ -27,7 +27,8 @@ class NB_101(Problem):
     def __init__(self, max_eval, max_time, dataset, **kwargs):
         super().__init__(SS_101(), max_eval, max_time)
         self.dataset = dataset
-        self.zc_database = p.load(open(ROOT_DIR + f'/database/nb101/[NB101]_zc_data.p', 'rb'))
+        # self.zc_database = p.load(open(ROOT_DIR + f'/database/nb101/[NB101]_zc_data.p', 'rb'))
+        self.zc_database = json.load(open(ROOT_DIR + f'/database/nb101/zc_nasbench101.json'))
         self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nb101/[NB101]_data.p', 'rb'))
         self.list_pof = json.load(open(ROOT_DIR + f'/database/nb101/[NB101]_pof.json'))
 
