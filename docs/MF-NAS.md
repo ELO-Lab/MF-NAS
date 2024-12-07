@@ -23,28 +23,28 @@ This repo have already implemented following NAS algorithms:
 
 Our experiments are conducted on **NAS-Bench-101**, **NAS-Bench-201**, and **NAS-Bench-ASR** search spaces.
 
-The configurations of algorithms are set in [`configs/algo_101.yaml`](configs/algo_101.yaml), [`configs/algo_201.yaml`](configs/algo_201.yaml), and [`configs/algo_asr.yaml`](configs/algo_asr.yaml).
-The configurations of problems are set in [`configs/problem.yaml`](configs/problem.yaml).
+The configurations of algorithms are set in [`configs/algo_101.yaml`](../configs/algo_101.yaml), [`configs/algo_201.yaml`](../configs/algo_201.yaml), and [`configs/algo_asr.yaml`](../configs/algo_asr.yaml).
+The configurations of problems are set in [`configs/problem.yaml`](../configs/problem.yaml).
 
 To reproduce all main results in our paper, run the below scripts:
 ```shell
-$ python /script/run_101.sh
-$ python /script/run_201.sh
-$ python /script/run_asr.sh
+$ python /script/run_101_mfnas.sh
+$ python /script/run_201_mfnas.sh
+$ python /script/run_asr_mfnas.sh
 ```
 
 To reproduce the ablation studies, run the below scripts:
 #### To experiment on NAS-Bench-201 with different zero-cost metrics
 ```shell
-$ python /script/run_201_with_different_zc_metrics.sh
+$ python /script/run_201_with_different_zc_metrics_mfnas.sh
 ```
 #### To compare the impact of Random Search and Local Search on the performance of MF-NAS
 ```shell
-$ python /script/compare_RS_and_LS.sh
+$ python /script/compare_RS_and_LS_mfnas.sh
 ```
 #### To replace `val_acc` with `train_loss` in MF-NAS
 ```shell
-$ python /script/replace_val_acc_with_train_loss.sh
+$ python /script/replace_val_acc_with_train_loss_mfnas.sh
 ```
 Note that you can search with other metrics. However, the `using_zc_metric` and `metric` hyperparameters must be set so that they do not conflict with each other.
 

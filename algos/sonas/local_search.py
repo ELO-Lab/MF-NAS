@@ -15,6 +15,7 @@ class IteratedLocalSearch(Algorithm):
         self.trend_time = []
         self.network_history = []
         self.score_history = []
+        self.trend_scores = []
 
     def _reset(self):
         self.trend_best_network = []
@@ -49,21 +50,21 @@ class IteratedLocalSearch(Algorithm):
         self.max_eval = kwargs['max_eval']
         self.max_time = kwargs['max_time']
         self.search_metric = kwargs['metric']
+        self.trend_scores = []
 
         # Initialize starting solution
-        pbar = tqdm(total=self.max_eval)
-
         init_network = sampling_solution(problem=self.problem)
 
         is_terminated = self.evaluate(init_network)
-        pbar.update(1)
 
         cur_network, best_network = deepcopy(init_network), deepcopy(init_network)
         update_log(best_network=best_network, cur_network=cur_network, algorithm=self)
 
         if is_terminated:
-            pbar.close()
             return best_network
+
+        ID = 0
+        self.trend_scores = [[[cur_network.genotype.copy(), self.problem.get_hash(cur_network), cur_network.score, self.problem.get_test_performance(cur_network)[0], 's']]]
 
         while True:
             improved = False
@@ -76,11 +77,9 @@ class IteratedLocalSearch(Algorithm):
                 list_ids.remove(list_ids[i])
 
                 list_neighbors = get_neighbors(cur_network=cur_network, ids=selected_ids, problem=self.problem)
-
                 ## For each neighbor, evaluate and compare to the current solution
                 for neighbor_network in list_neighbors:
                     is_terminated = self.evaluate(neighbor_network)
-                    pbar.update(1)
 
                     ## Update the best solution so far
                     if neighbor_network.score > best_network.score:
@@ -88,15 +87,16 @@ class IteratedLocalSearch(Algorithm):
                     update_log(best_network=best_network, cur_network=neighbor_network, algorithm=self)
 
                     ## Update the current solution
-                    if neighbor_network.score >= cur_network.score:
+                    # if neighbor_network.score >= cur_network.score:
+                    if neighbor_network.score > cur_network.score:
                         cur_network = deepcopy(neighbor_network)
+                        self.trend_scores[ID].append([cur_network.genotype.copy(), self.problem.get_hash(cur_network), cur_network.score, self.problem.get_test_performance(cur_network)[0], 'm'])
                         improved = True
 
                         if self.first_improvement:
                             break
 
                     if is_terminated:
-                        pbar.close()
                         return best_network
 
                 if self.first_improvement and improved:
@@ -105,6 +105,9 @@ class IteratedLocalSearch(Algorithm):
             # If the current solution cannot be improved, the algorithm is stuck.
             # Therefore, we perform the escape operator.
             if not improved:
+                if len(self.trend_scores[ID]) > 1:
+                    self.trend_scores[ID][-1][-1] = 'e'
+
                 ## Get all neighbors within the distance k = 2 (Escape Operator)
                 while True:
                     list_ids = get_indices(cur_network.genotype, 2)
@@ -117,14 +120,14 @@ class IteratedLocalSearch(Algorithm):
                 cur_network = deepcopy(list_neighbors[0])
 
                 is_terminated = self.evaluate(cur_network)
-                pbar.update(1)
+                ID += 1
+                self.trend_scores.append([[cur_network.genotype.copy(), self.problem.get_hash(cur_network), cur_network.score, self.problem.get_test_performance(cur_network)[0], 's']])
 
                 if cur_network.score > best_network.score:
                     best_network = deepcopy(cur_network)
                 update_log(best_network=best_network, cur_network=cur_network, algorithm=self)
 
                 if is_terminated:
-                    pbar.close()
                     return best_network
 
 def get_indices(genotype, distance):

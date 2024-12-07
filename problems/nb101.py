@@ -3,13 +3,12 @@ from search_spaces import SS_101
 from search_spaces.nb101.utils import ModelSpec_
 import numpy as np
 import pickle as p
-import os
 import json
 from problems.utils import get_ref_point
 from pymoo.indicators.hv import HV
+import pathlib
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__)).split('/')
-ROOT_DIR = '/'.join(ROOT_DIR[:-1])
+ROOT_DIR = str(pathlib.Path.cwd())
 
 time_dict = {
     'synflow': 1.4356617034300945,
@@ -27,8 +26,8 @@ class NB_101(Problem):
     def __init__(self, max_eval, max_time, dataset, **kwargs):
         super().__init__(SS_101(), max_eval, max_time)
         self.dataset = dataset
-        # self.zc_database = p.load(open(ROOT_DIR + f'/database/nb101/[NB101]_zc_data.p', 'rb'))
-        self.zc_database = json.load(open(ROOT_DIR + f'/database/nb101/zc_nasbench101.json'))
+        self.zc_database = p.load(open(ROOT_DIR + f'/database/nb101/[NB101]_zc_data.p', 'rb'))
+        # self.zc_database = json.load(open(ROOT_DIR + f'/database/nb101/zc_nasbench101.json'))
         self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nb101/[NB101]_data.p', 'rb'))
         self.list_pof = json.load(open(ROOT_DIR + f'/database/nb101/[NB101]_pof.json'))
 

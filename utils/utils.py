@@ -6,8 +6,8 @@ import os
 
 def create_result_folder(nas_type, opt_name, search_space, opt, save_path):
     if nas_type == 'so':
-        if opt_name == 'MF-NAS':
-            res_path = f'{save_path}/{opt_name}_{search_space}_{opt.metric_stage1}_{opt.max_eval_stage1}_{opt.metric_stage2}_{opt.n_candidate}'
+        if 'MF-NAS' in opt_name:
+            res_path = f'{save_path}/{opt_name}_{search_space}_{opt.optimizer_stage1}-{opt.metric_stage1}-{opt.max_eval_stage1}_SH-{opt.metric_stage2}-{opt.n_candidate}'
         else:
             if opt.using_zc_metric:
                 res_path = f'{save_path}/{opt_name}_{search_space}_{opt.metric}'
@@ -29,7 +29,7 @@ def mean_std(X, verbose=True):
     std = np.round(np.std(X), 4)
     if verbose:
         print(f'{mean:.4f} ({std:.4f})')
-    return mean, std
+    return float(mean), float(std)
 
 def set_seed(seed):
     random.seed(seed)

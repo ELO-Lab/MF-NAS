@@ -18,7 +18,6 @@ class RandomSearch(Algorithm):
         self.score_history = []
 
     def _run(self, **kwargs):
-        self._reset()
         max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
         max_time = self.problem.max_time if self.max_time is None else self.max_time
         metric = self.metric + f'_{self.iepoch}' if not self.using_zc_metric else self.metric
@@ -41,6 +40,7 @@ class RandomSearch(Algorithm):
         return is_terminated or self.n_eval >= self.max_eval
 
     def search(self, **kwargs):
+        self._reset()
         self.max_eval = kwargs['max_eval']
         self.max_time = kwargs['max_time']
         self.search_metric = kwargs['metric']

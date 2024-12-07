@@ -57,8 +57,11 @@ def mo_evaluate(search_result: ElitistArchive, problem, **kwargs):
     evaluation_result['Evaluation Cost (GPU seconds)'] = int(eval_cost)
     return evaluation_result
 
-def run_evaluate(res_file, problem, nas_type, save_path, filename, verbose=True, **kwargs):
-    search_result, search_cost, total_epoch = p.load(open(res_file, 'rb'))
+def run_evaluate(problem, nas_type, save_path, filename, res_file=None, verbose=True, log=False, **kwargs):
+    if res_file is not None:
+        search_result, search_cost, total_epoch = p.load(open(res_file, 'rb'))
+    else:
+        search_result, search_cost, total_epoch = kwargs['search_result'], kwargs['search_cost'], kwargs['total_epoch']
     if nas_type == 'so':
         evaluation_result = so_evaluate(search_result, problem)
     else:
@@ -75,8 +78,10 @@ def run_evaluate(res_file, problem, nas_type, save_path, filename, verbose=True,
         print('-' * 100)
     evaluation_result['Search Cost (GPU seconds)'] = search_cost
     evaluation_result['Search Cost (#Epochs)'] = total_epoch
-    with open(f'{save_path}/{filename}.json', 'w') as fp:
-        json.dump(evaluation_result, fp, indent=4, cls=NumpyEncoder)
+
+    if log:
+        with open(f'{save_path}/{filename}.json', 'w') as fp:
+            json.dump(evaluation_result, fp, indent=4, cls=NumpyEncoder)
     return evaluation_result
 
 def run(problem, nas_type, res_path):

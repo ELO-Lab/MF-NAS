@@ -45,10 +45,14 @@ def get_algorithm(name, config_file):
         algo = RandomSearch()
     elif 'REA' in name:
         algo = REA()
+    elif 'GA' in name:
+        algo = GA()
     elif name == 'SH':
         algo = SuccessiveHalving()
     elif name == 'MF-NAS':
         algo = MF_NAS()
+    elif name == 'R-MF-NAS':
+        algo = R_MF_NAS()
     elif name == 'PLS':
         algo = ParetoLocalSearch()
     elif name == 'NSGA2':

@@ -6,8 +6,9 @@ from pymoo.indicators.hv import HV
 from problems.utils import get_ref_point
 from problems import Problem
 from search_spaces import SS_NATS
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__)).split('/')
-ROOT_DIR = '/'.join(ROOT_DIR[:-1])
+import pathlib
+
+ROOT_DIR = str(pathlib.Path.cwd())
 
 class NB_NATS(Problem):
     def __init__(self, max_eval, max_time, dataset, **kwargs):

@@ -45,7 +45,7 @@ class SuccessiveHalving(Algorithm):
         list_network = np.array(list_network)
 
         best_network = Network()
-        if 'loss' in self.metric:
+        if 'loss' in self.metric or 'per' in self.metric:
             best_network.score *= -1
 
         for iepoch in self.list_iepoch:

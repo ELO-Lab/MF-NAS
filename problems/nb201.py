@@ -3,12 +3,11 @@ from search_spaces import SS_201
 import json
 import numpy as np
 import pickle as p
-import os
 from pymoo.indicators.hv import HV
 from problems.utils import get_ref_point
+import pathlib
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__)).split('/')
-ROOT_DIR = '/'.join(ROOT_DIR[:-1])
+ROOT_DIR = str(pathlib.Path.cwd())
 
 list_supported_zc_metrics = ['jacov', 'plain', 'grasp', 'fisher', 'epe_nas', 'zen', 'grad_norm', 'snip', 'l2_norm', 'synflow', 'nwot', 'flops', 'params']
 list_supported_training_based_metrics = ['train_acc', 'val_acc', 'train_loss', 'val_loss']
@@ -38,7 +37,7 @@ class NB_201(Problem):
         super().__init__(SS_201(), max_eval, max_time)
         self.dataset = dataset
         # self.zc_database = json.load(open(ROOT_DIR + f'/database/nb201/[NB201]_zc_data.json'))
-        self.zc_database = json.load(open(ROOT_DIR + f'/database/nb201/zc_nasbench201.json'))
+        self.zc_database = json.load(open(ROOT_DIR + '/database/nb201/zc_nasbench201.json'))
         self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nb201/[NB201][{self.dataset}]_data.p', 'rb'))
         self.list_pof = json.load(open(ROOT_DIR + f'/database/nb201/[NB201][{self.dataset}]_pof.json'))
         self.mo_objective = kwargs['mo_objective']

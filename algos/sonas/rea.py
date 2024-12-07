@@ -19,12 +19,14 @@ class REA(Algorithm):
         self.prob_mutation = 1.0
         self.network_history = []
         self.score_history = []
+        self.best_network = None
 
     def _reset(self):
         self.trend_best_network = []
         self.trend_time = []
         self.network_history = []
         self.score_history = []
+        self.best_network = None
 
     def _run(self, **kwargs):
         max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
@@ -65,6 +67,7 @@ class REA(Algorithm):
         return init_pop
 
     def search(self, **kwargs):
+        self._reset()
         self.max_eval = kwargs['max_eval']
         self.max_time = kwargs['max_time']
         self.search_metric = kwargs['metric']
@@ -75,26 +78,23 @@ class REA(Algorithm):
         if self.warm_up:
             assert self.n_sample_warmup != 0
             assert self.metric_warmup is not None
-        self._reset()
 
-        best_network = None
         population = []  # (validation, spec) tuples
 
         # Initialize population
         samples = self.initialize()
         for network in samples:
             is_terminated = self.evaluate(network)
-            self.trend_time.append(self.total_time)
             population.append((network.score, network.genotype.copy()))
 
-            if best_network is None:
-                best_network = deepcopy(network)
+            if self.best_network is None:
+                self.best_network = deepcopy(network)
             else:
-                if network.score > best_network.score:
-                    best_network = deepcopy(network)
-            update_log(best_network=best_network, cur_network=network, algorithm=self)
+                if network.score > self.best_network.score:
+                    self.best_network = deepcopy(network)
+            update_log(best_network=self.best_network, cur_network=network, algorithm=self)
             if is_terminated:
-                break
+                return self.best_network
 
         # After the population is seeded, proceed with evolving the population.
         while True:
@@ -103,17 +103,16 @@ class REA(Algorithm):
             new_network = mutate(best_candidate, self.prob_mutation, problem=self.problem)
 
             is_terminated = self.evaluate(new_network)
-            self.trend_time.append(self.total_time)
 
             # In regularized evolution, we kill the oldest individual in the population.
             population.append((new_network.score, new_network.genotype.copy()))
             population.pop(0)
 
-            if new_network.score > best_network.score:
-                best_network = deepcopy(new_network)
-            update_log(best_network=best_network, cur_network=new_network, algorithm=self)
+            if new_network.score > self.best_network.score:
+                self.best_network = deepcopy(new_network)
+            update_log(best_network=self.best_network, cur_network=new_network, algorithm=self)
             if is_terminated:
-                return best_network
+                return self.best_network
 
 def run_warm_up(algo):
     n_sample = algo.n_sample_warmup

@@ -1,3 +1,5 @@
+from torch.utils.benchmark.utils.fuzzer import dtype_size
+
 from search_spaces import SearchSpace
 from search_spaces.nb101.utils import OutOfDomainError, check_spec, ModelSpec_
 from search_spaces.nb101.model import Network
@@ -27,7 +29,8 @@ class SS_101(SearchSpace):
         x_ops = np.empty(num_vertices - 2)
         for i, op in enumerate(network['ops'][1:-1]):
             x_ops[i] = (np.array(allowed_ops) == op).nonzero()[0][0]
-        return np.concatenate((x_edge, x_ops)).astype(int)
+        encode_network = np.concatenate((x_edge, x_ops))
+        return [int(v) for v in encode_network]
 
     def decode(self, encode_network: np.ndarray):
         network_edge = encode_network[:edge_spots]

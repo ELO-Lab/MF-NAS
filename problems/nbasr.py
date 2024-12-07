@@ -4,10 +4,10 @@ from search_spaces.nbasr.utils import get_model_graph, graph_hash
 import numpy as np
 import pickle as p
 import json
-import os
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__)).split('/')
-ROOT_DIR = '/'.join(ROOT_DIR[:-1])
+import pathlib
+
+ROOT_DIR = str(pathlib.Path.cwd())
 
 class NB_ASR(Problem):
     def __init__(self, max_eval, max_time, dataset, **kwargs):
@@ -17,7 +17,8 @@ class NB_ASR(Problem):
         self.benchmark_database = p.load(open(ROOT_DIR + f'/database/nbasr/[NBASR]_data.p', 'rb'))
         self.pof = json.load(open(ROOT_DIR + f'/database/nbasr/[NBASR]_pof.json'))
 
-        self.mo_objective = kwargs['mo_objective']
+        # self.mo_objective = kwargs['mo_objective']
+        self.mo_objective = None
 
     def mo_evaluate(self, list_networks, list_metrics, **kwargs):
         max_time = kwargs['max_time']
@@ -102,6 +103,8 @@ class NB_ASR(Problem):
                 score = self.benchmark_database[h]['params']
         else:
             score = self.zc_database[h][metric]
+        if np.isnan(score) or np.isinf(score):
+            score = np.inf
         if inplace:
             network.score = score
             return time
@@ -118,14 +121,16 @@ class NB_ASR(Problem):
         h = self.get_h(network=genotype)
         info = self.benchmark_database[h]
         score = info[metric][iepoch - 1]
+        if 'per' in metric:
+            score *= -1
         time = 0
         network.info['cur_iepoch'].append(iepoch)
         network.info['train_time'].append(time)
         if inplace:
-            network.score = -score
+            network.score = score
             return time, dif_epoch
         else:
-            return -score, time, dif_epoch
+            return score, time, dif_epoch
 
     def get_test_performance(self, network, **kwargs):
         time = 0.0

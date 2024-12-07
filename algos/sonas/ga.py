@@ -4,6 +4,29 @@ from algos import Algorithm
 from algos.utils import update_log, sampling_solution
 from utils.genetic_operators import PointCrossover, BitStringMutation
 
+
+class TournamentSelection:
+    def __init__(self, k):
+        self.k = k
+        self.name = f'Tournament Selection k = {k}'
+
+    def do(self, pool, pop_size):
+        pool = np.array(pool)
+        P = []
+        pool_size = len(pool)
+        n = 0
+        while True:
+            I = np.random.choice(pool_size, size=(pool_size // self.k, self.k), replace=False)
+            _pool = pool[I]
+            for i in range(len(_pool)):
+                pool_F = [network.score for network in _pool[i]]
+                idx_best = np.argmax(pool_F)
+                P.append(_pool[i][idx_best])
+                n += 1
+                if n - pop_size == 0:
+                    return P
+
+
 class GA(Algorithm):
     def __init__(self):
         super().__init__()
@@ -26,18 +49,24 @@ class GA(Algorithm):
         self.network_history = []
         self.score_history = []
 
+        self.best_network = None
+
     def get_genetic_operators(self):
         self.crossover = PointCrossover(prob=self.prob_c, method=self.crossover_method)
         self.mutation = BitStringMutation(prob=self.prob_m)
+        self.survival = TournamentSelection(k=self.tournament_size)
 
     def _reset(self):
         self.pop = None
+        self.best_network = None
 
         self.n_gen = 0
         self.trend_best_network = []
         self.trend_time = []
         self.network_history = []
         self.score_history = []
+
+        self.get_genetic_operators()
 
     def _run(self, **kwargs):
         max_eval = self.problem.max_eval if self.max_eval is None else self.max_eval
@@ -87,11 +116,9 @@ class GA(Algorithm):
         offsprings = self.mating(pop)
         for network in offsprings:
             is_terminated = self.evaluate(network)
-            if network.score > self.trend_best_network[-1].score:
-                best_network = deepcopy(network)
-            else:
-                best_network = self.trend_best_network[-1]
-            update_log(best_network=best_network, cur_network=network, algorithm=self)
+            if network.score > self.best_network.score:
+                self.best_network = deepcopy(network)
+            update_log(best_network=self.best_network, cur_network=network, algorithm=self)
             if is_terminated:
                 return True
 
@@ -100,6 +127,7 @@ class GA(Algorithm):
         return False
 
     def search(self, **kwargs):
+        self._reset()
         self.max_eval = kwargs['max_eval']
         self.max_time = kwargs['max_time']
         self.search_metric = kwargs['metric']
@@ -112,30 +140,27 @@ class GA(Algorithm):
             assert self.metric_warmup is not None
         self._reset()
 
-        best_network = None
-
         # Initialize population
         self.pop = self.initialize()
         for network in self.pop:
             is_terminated = self.evaluate(network)
-            self.trend_time.append(self.total_time)
 
-            if best_network is None:
-                best_network = deepcopy(network)
+            if self.best_network is None:
+                self.best_network = deepcopy(network)
             else:
-                if network.score > best_network.score:
-                    best_network = deepcopy(network)
-            update_log(best_network=best_network, cur_network=network, algorithm=self)
+                if network.score > self.best_network.score:
+                    self.best_network = deepcopy(network)
+            update_log(best_network=self.best_network, cur_network=network, algorithm=self)
             if is_terminated:
                 break
 
         # After the population is seeded, proceed with evolving the population.
-        while (self.n_eval <= self.max_eval) and (self.total_time <= self.max_time):
+        while True:
             self.n_gen += 1
             is_terminated = self.next(self.pop)
             if is_terminated:
                 break
-        return best_network
+        return self.best_network
 
 
 def run_warm_up(algo):

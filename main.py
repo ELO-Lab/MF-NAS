@@ -10,7 +10,8 @@ import pathlib
 from evaluate import run_evaluate
 from utils import create_result_folder, mean_std
 
-root = pathlib.Path(__file__).parent
+root = str(pathlib.Path.cwd())
+log = True
 
 def run(kwargs):
     opt_name = kwargs.optimizer
@@ -41,32 +42,23 @@ def run(kwargs):
     init_seed = args.init_seed
     print()
     list_perf_ind = []
-    for run_id in range(1, n_run+1):
+    from tqdm import tqdm
+    for run_id in tqdm(range(1, n_run + 1)):
         search_result, search_cost, total_epoch = opt.run(seed=init_seed + run_id)
-        # search_result()
         opt.finalize(save_path=res_path + f'/results', rid=run_id)
 
         p.dump([search_result, int(search_cost), int(total_epoch)], open(res_path + f'/results/search_results_run{run_id}.p', 'wb'))
-        print(f'- RunID: {run_id}')
-        print(f'  + Search cost (in seconds): {int(search_cost)}')
-        print(f'  + Search cost (in epochs): {int(total_epoch)}')
-        print('-'*100)
         trend_search_cost.append(search_cost)
         trend_total_epoch.append(total_epoch)
 
         if kwargs.evaluate_after_search:
-            if opt_name == 'MOF-NAS':
-                size_archive = 20
-            else:
-                size_archive = 20
-            evaluation_result = run_evaluate(res_path + f'/results/search_results_run{run_id}.p',
-                                             problem, opt.nas_type,
-                                             save_path=res_path + f'/results',
-                                             filename=f'evaluation_results_run{run_id}', size_archive=size_archive, verbose=False)
-            if opt.nas_type == 'mo':
-                list_perf_ind.append(evaluation_result['HV'])
-            else:
-                list_perf_ind.append(evaluation_result['Networks'][-1]['test_acc'])
+            size_archive = 20
+            evaluation_result = run_evaluate(
+                search_result=search_result, search_cost=search_cost, total_epoch=total_epoch,
+                problem=problem, nas_type=opt.nas_type,
+                save_path=res_path + f'/results',
+                filename=f'evaluation_results_run{run_id}', size_archive=size_archive, verbose=False, log=log)
+            list_perf_ind.append(evaluation_result['Networks'][-1]['test_acc'])
     print('- Average performance:', mean_std(list_perf_ind, verbose=False))
     print(f'- Average Search Cost (in seconds): {np.round(np.mean(trend_search_cost))}')
     print(f'- Average Search Cost (in epochs): {np.round(np.mean(trend_total_epoch))}')

@@ -3,7 +3,11 @@ numpy
 tqdm
 gdown
 fvcore
-torch
-torchvision
-torchaudio
+pyyaml
+scikit-learn
+tqdm
+scikit-image
+# torch
+# torchvision
+# torchaudio
 transforms3d
