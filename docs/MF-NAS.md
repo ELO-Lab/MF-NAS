@@ -3,7 +3,7 @@
 
 Quan Minh Phan, Ngoc Hoang Luong
 
-In **GECCO 2024**.
+In [**GECCO 2024**](https://dl.acm.org/doi/10.1145/3638529.3654027).
 
 ## Setup
 - Clone this repo
