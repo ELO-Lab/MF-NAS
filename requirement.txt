@@ -1,3 +1,13 @@
+pymoo
 numpy
 tqdm
 gdown
+fvcore
+pyyaml
+scikit-learn
+tqdm
+scikit-image
+# torch
+# torchvision
+# torchaudio
+transforms3d

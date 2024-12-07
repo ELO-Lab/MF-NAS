@@ -12,3 +12,6 @@ class Problem(ABC):
     @abstractmethod
     def get_test_performance(self, network, **kwargs):
         pass
+
+    def get_hash(self, network):
+        return ''.join(map(str, network.genotype))
